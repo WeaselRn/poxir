@@ -481,7 +481,8 @@ body.cooking .skip{opacity:1;transition:opacity .4s .8s}
   .icon-btn{padding:0 10px}
   .layout{display:flex;flex-direction:column;align-items:stretch;gap:18px;padding:0 16px calc(100px + env(safe-area-inset-bottom,0px))}
   .col-pot{gap:10px;padding-top:0}
-  .pot-wrap{width:min(330px,88vw);min-width:0}
+  .pot-wrap{width:min(330px,88vw);min-width:0;cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:24px}
+  .pot-wrap:active:not(.cooking):not(.climax) .pot{transform:scale(.98);transition:transform .12s}
   .pips,.col-pot .brew{display:none}
   .col-shelf{background:none;padding:0;border-radius:0}
   .col-shelf .col-h{padding:0;margin-bottom:10px}
@@ -1178,7 +1179,7 @@ function renderCauldron(){
   const n = state.sel.length;
   const ok = n>=5;
   $('brew-btn').disabled = !ok; $('mbar-brew').disabled = !ok;
-  $('status').textContent = n===0 ? 'Choose five or six ingredients' : n<5 ? `Add ${5-n} more to brew` : n===5 ? 'Ready. One more slot is free.' : 'Cauldron full. Ready to brew.';
+  $('status').textContent = n===0 ? (MOBILE.matches ? 'Tap the cauldron to choose ingredients' : 'Choose five or six ingredients') : n<5 ? `Add ${5-n} more to brew` : n===5 ? 'Ready. One more slot is free.' : 'Cauldron full. Ready to brew.';
   $('sel-n').textContent = n;
   $('bench-count').textContent = `${n} / 6`;
   $('mbar-count').textContent = `${n} / 6`;
@@ -1623,15 +1624,25 @@ $('grim-btn').addEventListener('click', openGrimoire);
 $('last-btn').addEventListener('click', ()=>{ if(state.lastView) openCard({...state.lastView, fresh:false}); });
 $('mbar-ing').addEventListener('click', ()=>{ $('pantry').classList.contains('open') ? closeOverlays() : openOverlay($('pantry'), $('search')); });
 $('drawer-close').addEventListener('click', ()=>closeOverlays());
+// On mobile the cauldron itself opens the ingredient drawer.
+function openPantry(){ if(MOBILE.matches && !brewing) openOverlay($('pantry'), $('search')); }
+function syncPotTap(){
+  const w = $('pot-wrap');
+  if(MOBILE.matches){ w.setAttribute('role','button'); w.tabIndex = 0; w.setAttribute('aria-label','Choose ingredients'); }
+  else { w.removeAttribute('role'); w.removeAttribute('tabindex'); w.removeAttribute('aria-label'); }
+}
+$('pot-wrap').addEventListener('click', openPantry);
+$('pot-wrap').addEventListener('keydown', e=>{ if(MOBILE.matches && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); openPantry(); } });
 $('scrim').addEventListener('click', ()=>closeOverlays());
 $('result-layer').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeOverlays(); });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.querySelector('#pantry.open,#grimoire.open,#result-layer.open')) closeOverlays(); });
-MOBILE.addEventListener('change', ()=>{ closeOverlays(true); $('bottled').open = !MOBILE.matches; if(inspId===null) inspect(null); });
+MOBILE.addEventListener('change', ()=>{ closeOverlays(true); $('bottled').open = !MOBILE.matches; syncPotTap(); renderCauldron(); if(inspId===null) inspect(null); });
 
 /* ---------- boot ---------- */
 load();
 renderSound();
 $('bottled').open = !MOBILE.matches;
+syncPotTap();
 renderFilters(); renderIngredients(); renderCauldron(); renderShelf(); renderBook(); renderSky(); inspect(null);
 setInterval(renderSky, 60000);
 </script>
