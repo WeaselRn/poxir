@@ -1630,8 +1630,6 @@ MOBILE.addEventListener('change', ()=>{ closeOverlays(true); $('bottled').open =
 /* ---------- boot ---------- */
 load();
 renderSound();
-// Start with an example handful in the cauldron so it is ready to brew
-state.sel = ['Moonflower','Ghost Breath','Lavender Sprig','Honey','Goat Milk'].map(n=>BY[n].id);
 $('bottled').open = !MOBILE.matches;
 renderFilters(); renderIngredients(); renderCauldron(); renderShelf(); renderBook(); renderSky(); inspect(null);
 setInterval(renderSky, 60000);
