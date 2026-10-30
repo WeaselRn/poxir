@@ -1,0 +1,1640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Apothecary's Grimoire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Manrope:wght@400;500;600&display=swap">
+<style>
+/* Apothecary's Grimoire — a small alchemist's workstation on Halloween night.
+   Ingredients on the left, the cauldron in the middle, your shelf on the right.
+   The Grimoire lives in a side drawer; brew results get their own moment. */
+:root{
+  color-scheme: dark;
+  /* surfaces */
+  --bg:#171815; --bg-2:#24251F; --surface:#302D27; --panel:rgba(36,37,31,.72);
+  /* accents */
+  --gold:#C5A66A; --gold-hi:#E2C68C; --sage:#8D9B70; --potion:#648B65; --red:#9D665B;
+  --pumpkin:#C47A3E; --hex:#7E6C9A;
+  /* text */
+  --ink:#EDE6D8; --muted:#A8A090; --faint:#78725F; --line:rgba(237,230,216,.07);
+  /* rarities, plainest to rarest */
+  --r-common:#A39A86; --r-rare:#7E9FB0; --r-legendary:#C9873F; --r-mythic:#9A7FC0; --r-heavenly:#EAD7A1;
+  /* essences */
+  --e-blood:#B8675F; --e-bone:#CDBF9C; --e-spirit:#8FB7AF; --e-shadow:#9686B8; --e-common:#9E9A8A;
+  /* type */
+  --f-head:'Cormorant Garamond', Georgia, serif;
+  --f-ui:'Manrope', system-ui, -apple-system, sans-serif;
+  /* shape + motion */
+  --r-sm:8px; --r:12px; --r-lg:20px;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  /* live values set from script */
+  --liquid:#2a2a24; --grade:var(--r-legendary);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg);color:var(--ink);
+  font:400 15px/1.5 var(--f-ui);
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+body.locked{overflow:hidden!important}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- night scene ---------- */
+.scene{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;
+  background:
+    radial-gradient(560px 520px at 50% 36%, rgba(226,206,160,.06), transparent 70%),
+    radial-gradient(760px 360px at 50% 100%, rgba(196,122,62,.11), transparent 70%),
+    radial-gradient(130% 100% at 50% 40%, transparent 55%, rgba(0,0,0,.5) 100%);
+}
+.moon{position:absolute;left:50%;top:7%;width:200px;height:200px;margin-left:-100px;border-radius:50%;
+  background:radial-gradient(circle at 44% 42%, rgba(236,226,200,.055), rgba(236,226,200,.015) 58%, transparent 70%)}
+.bat{position:absolute;width:26px;fill:#0d0e0b;opacity:.85;animation:drift 34s ease-in-out infinite alternate}
+.bat:nth-of-type(2){animation-duration:41s;animation-delay:-12s}
+.bat:nth-of-type(3){animation-duration:29s;animation-delay:-20s}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,-14px) scale(.92)}100%{transform:translate(-30px,10px) scale(1.05)}}
+.fog{position:absolute;left:-10%;right:-10%;bottom:-40px;height:34%;
+  background:radial-gradient(50% 60% at 30% 100%, rgba(141,155,112,.07), transparent 70%),
+             radial-gradient(45% 55% at 75% 100%, rgba(126,108,154,.06), transparent 70%);
+  filter:blur(10px);animation:fog 24s ease-in-out infinite alternate}
+@keyframes fog{from{transform:translateX(-3%)}to{transform:translateX(3%)}}
+
+/* ---------- frame ---------- */
+.app{position:relative;z-index:1;height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 28px 10px}
+.brand{font-family:var(--f-head);font-weight:600;font-size:30px;line-height:1;margin:0;letter-spacing:.005em}
+.brand em{font-style:italic;font-weight:500;color:var(--gold)}
+.tagline{margin:5px 0 0;color:var(--muted);font-size:13px}
+.top-actions{display:flex;gap:4px}
+.icon-btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 13px;border:0;border-radius:999px;background:transparent;color:var(--muted);transition:background .2s,color .2s}
+.icon-btn:hover{background:var(--bg-2);color:var(--ink)}
+.icon-btn svg{width:18px;height:18px;flex:none}
+.icon-btn .found{font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums}
+#sound-btn[aria-pressed="false"] .wave{display:none}
+#sound-btn[aria-pressed="true"] .mute{display:none}
+
+.layout{display:grid;min-height:0;gap:24px;padding:8px 28px 24px;
+  grid-template-columns:minmax(300px,350px) minmax(0,1fr) minmax(260px,310px);
+  grid-template-areas:"ing pot shelf"}
+.col-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:0 20px;margin-bottom:12px}
+.col-h h2{font-family:var(--f-head);font-weight:600;font-size:24px;line-height:1.1;margin:0}
+.quiet{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ---------- ingredients ---------- */
+.col-ing{grid-area:ing;display:flex;flex-direction:column;min-height:0;background:var(--panel);border-radius:var(--r-lg);padding-top:20px}
+.col-h .drawer-close{display:none}
+.filters{padding:0 20px 10px;display:flex;flex-direction:column;gap:10px}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;margin:0 -8px}
+.tabs::-webkit-scrollbar{display:none}
+.filter{border:0;background:transparent;color:var(--muted);font-size:13px;padding:5px 9px;border-radius:999px;white-space:nowrap;transition:color .2s,background .2s}
+.filter:hover{color:var(--ink)}
+.filter[aria-pressed="true"]{background:var(--surface);color:var(--ec,var(--ink))}
+.search{display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:var(--r);background:rgba(23,24,21,.8);color:var(--faint);transition:box-shadow .2s}
+.search:focus-within{box-shadow:0 0 0 1px rgba(197,166,106,.55)}
+.search svg{width:15px;height:15px;flex:none}
+.search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);font:inherit;font-size:13.5px}
+.search input::placeholder{color:var(--faint)}
+.ing-scroll{flex:1;min-height:0;overflow-y:auto;padding:6px 12px 14px;scrollbar-width:thin;scrollbar-color:var(--surface) transparent;
+  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 10px,#000 calc(100% - 14px),transparent);
+          mask-image:linear-gradient(to bottom,transparent,#000 10px,#000 calc(100% - 14px),transparent)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.ing{position:relative;border:0;background:transparent;border-radius:var(--r);padding:12px 8px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;
+  transition:background .2s,opacity .2s,transform .2s var(--ease)}
+.ing:hover{background:rgba(48,45,39,.65)}
+.ing-art{position:relative;width:46px;height:58px;display:grid;place-items:center}
+.ing-art::after{content:"";position:absolute;left:4px;right:4px;bottom:-4px;height:12px;border-radius:50%;
+  background:radial-gradient(closest-side,var(--c),transparent);opacity:0;transition:opacity .25s}
+.art{width:100%;height:100%;overflow:visible;transition:filter .25s}
+.ing .nm{font-size:12.5px;line-height:1.25;font-weight:500;color:var(--muted);min-height:2.5em;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;transition:color .2s}
+.ess-mark{position:absolute;top:8px;left:10px;font-size:11px;line-height:1;color:var(--ec);opacity:.55}
+.tick{position:absolute;top:8px;right:8px;width:17px;height:17px;border-radius:50%;background:var(--gold);color:#1d1a12;
+  display:grid;place-items:center;transform:scale(0);transition:transform .2s var(--ease)}
+.tick svg{width:10px;height:10px}
+.ing[aria-pressed="true"]{background:var(--surface)}
+.ing[aria-pressed="true"] .nm{color:var(--ink)}
+.ing[aria-pressed="true"] .ing-art::after{opacity:.6}
+.ing[aria-pressed="true"] .art{filter:drop-shadow(0 0 9px color-mix(in srgb,var(--c) 55%,transparent))}
+.ing[aria-pressed="true"] .tick{transform:scale(1)}
+.ing[aria-disabled="true"]{opacity:.32;cursor:not-allowed}
+.ing[aria-disabled="true"]:hover{background:transparent}
+.ing.pop{animation:pop .28s var(--ease)}
+@keyframes pop{0%{transform:scale(.93)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+.empty-note{grid-column:1/-1;color:var(--muted);font-style:italic;padding:14px 8px;margin:0}
+
+.inspector{display:flex;gap:14px;align-items:center;min-height:86px;padding:14px 20px 18px;border-top:1px solid var(--line)}
+.insp-art{width:34px;height:44px;flex:none}
+.insp-name{font-family:var(--f-head);font-size:19px;font-weight:600;line-height:1.15}
+.insp-meta{font-size:12.5px;color:var(--muted)}
+.insp-fx{margin:2px 0 0;font-size:12.5px;color:var(--gold)}
+.insp-idle{margin:0;font-size:13px;color:var(--faint);font-style:italic}
+.bane{color:#CF8E80}.balm{color:var(--e-spirit)}
+
+/* ---------- cauldron ---------- */
+.col-pot{grid-area:pot;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:0;overflow-y:auto;padding:4px 0 8px}
+.pot-wrap{position:relative;flex:none;width:min(520px,100%,calc((100dvh - 380px) * 1.18));min-width:240px;aspect-ratio:400/340}
+.pot{width:100%;height:100%;display:block;overflow:visible}
+.pot .liquid{fill:var(--liquid);transition:fill .6s ease}
+.pot .glow{fill:var(--liquid);opacity:.4;transition:fill .6s ease,opacity .4s}
+.pot-wrap.judged .liquid,.pot-wrap.judged .glow{fill:var(--grade)}
+.flame{transform-box:fill-box;transform-origin:50% 100%;animation:flick 1.15s ease-in-out infinite alternate}
+.flame:nth-child(2){animation-delay:-.35s}.flame:nth-child(3){animation-delay:-.7s;animation-duration:1.4s}
+.flame:nth-child(4){animation-delay:-.2s}.flame:nth-child(5){animation-delay:-.9s}
+@keyframes flick{from{transform:scaleY(.84) skewX(-4deg)}to{transform:scaleY(1.08) skewX(4deg)}}
+.fire-glow{animation:emb 2.6s ease-in-out infinite alternate}
+@keyframes emb{from{opacity:.7}to{opacity:1}}
+.ripple{fill:none;stroke:color-mix(in srgb,var(--liquid) 55%,#fff);stroke-width:2;opacity:0;transform-box:fill-box;transform-origin:center}
+.pot-wrap.splash .ripple{animation:ripple .6s ease-out}
+.pot-wrap.splash .ripple.r2{animation-delay:.12s}
+@keyframes ripple{0%{opacity:.85;transform:scale(.3)}100%{opacity:0;transform:scale(3.4)}}
+.bubbles{position:absolute;left:22%;right:22%;top:22%;height:12.5%;pointer-events:none}
+.bubble{position:absolute;bottom:0;border-radius:50%;background:color-mix(in srgb,var(--liquid) 80%,#fff);border:1px solid rgba(255,255,255,.2);opacity:0;animation:rise 2.6s ease-in infinite}
+@keyframes rise{0%{transform:translateY(0) scale(.4);opacity:0}20%{opacity:.85}100%{transform:translateY(-34px) scale(1.1);opacity:0}}
+.steam{position:absolute;left:28%;right:28%;top:-8%;height:38%;pointer-events:none}
+.steam span{position:absolute;bottom:0;width:42%;height:62%;border-radius:50%;
+  background:radial-gradient(closest-side,color-mix(in srgb,var(--liquid) 30%,rgba(237,230,216,.16)),transparent);
+  filter:blur(7px);opacity:0;animation:steam 5.5s ease-in infinite}
+.steam span:nth-child(1){left:0}
+.steam span:nth-child(2){left:30%;animation-delay:-1.8s}
+.steam span:nth-child(3){left:58%;animation-delay:-3.6s}
+@keyframes steam{0%{opacity:0;transform:translateY(24px) scale(.6)}30%{opacity:1}100%{opacity:0;transform:translateY(-56px) scale(1.5)}}
+/* brewing sequence: ingredients tumble in, the fire roars, the brew swirls, then it erupts */
+.flames{transform-box:fill-box;transform-origin:50% 100%;transition:transform .5s var(--ease)}
+.vortex{fill:none;stroke:rgba(255,255,255,.32);stroke-width:2;stroke-linecap:round;stroke-dasharray:46 34;opacity:0;transition:opacity .4s}
+.vortex.v2{stroke:rgba(0,0,0,.28);stroke-dasharray:24 40}
+.drops,.sparks{position:absolute;inset:0;pointer-events:none}
+.drop{position:absolute;top:34%;width:30px;height:40px;margin:-20px 0 0 -15px;animation:dropIn .6s cubic-bezier(.5,0,.8,.4) both}
+.drop .art{filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+@keyframes dropIn{0%{transform:translate(var(--x),-170px) rotate(var(--r));opacity:0}20%,85%{opacity:1}100%{transform:translate(0,0) rotate(calc(var(--r) + 200deg)) scale(.35);opacity:0}}
+.spark{position:absolute;bottom:62%;width:var(--s);height:var(--s);border-radius:50%;background:var(--sc);opacity:0;animation:spark var(--d) ease-out var(--dl) infinite}
+@keyframes spark{0%{transform:translate(0,0);opacity:0}15%{opacity:1}100%{transform:translate(var(--dx),-170px);opacity:0}}
+.beam{position:absolute;left:50%;bottom:64%;width:56%;height:150%;margin-left:-28%;pointer-events:none;opacity:0;transform-origin:50% 100%;
+  background:radial-gradient(50% 100% at 50% 100%,var(--beam),transparent 75%);filter:blur(6px)}
+.pot-wrap.elixir{--beam:rgba(240,213,146,.75)}
+.pot-wrap.poison{--beam:rgba(100,139,101,.75)}
+.pot-wrap.climax{animation:quake .5s ease-out}
+.pot-wrap.climax .beam{animation:beam .7s var(--ease) forwards}
+.pot-wrap.poison.climax .beam{width:72%;margin-left:-36%;filter:blur(16px);animation-duration:.9s}
+.pot-wrap.climax .liquid,.pot-wrap.climax .glow{fill:var(--grade);transition:fill .3s}
+.pot-wrap.cooking{animation:rumble .16s linear infinite}
+.pot-wrap.cooking .flames{transform:scale(1.35,1.5)}
+.pot-wrap.cooking .flame{animation-duration:.35s}
+.pot-wrap.cooking .fire-glow{animation-duration:.5s}
+.pot-wrap.cooking .vortex{opacity:1;animation:swirl 1.1s linear infinite}
+.pot-wrap.cooking .vortex.v2{animation-duration:.7s}
+.pot-wrap.cooking .bubble{animation-duration:.8s}
+.pot-wrap.cooking .glow{opacity:.85}
+.pot-wrap.cooking .steam span{animation-duration:1.4s}
+.pot-wrap.cooking .liquid,.pot-wrap.cooking .glow{transition:fill .22s linear}
+@keyframes swirl{to{stroke-dashoffset:-160}}
+@keyframes rumble{0%,100%{transform:none}25%{transform:translate(-1px,0) rotate(-.4deg)}75%{transform:translate(1px,-1px) rotate(.4deg)}}
+@keyframes quake{0%{transform:none}20%{transform:scale(1.04) rotate(-1.5deg)}45%{transform:scale(.99) rotate(1.2deg)}70%{transform:rotate(-.5deg)}100%{transform:none}}
+@keyframes beam{0%{opacity:0;transform:scale(.6,.1)}40%{opacity:1}100%{opacity:.9;transform:none}}
+body.cooking{cursor:pointer}
+body.cooking .top,body.cooking .col-ing,body.cooking .col-shelf,body.cooking .mbar,
+body.cooking .col-pot>:not(.pot-wrap):not(.meter){opacity:.15;pointer-events:none;transition:opacity .5s}
+body.cooking .count{opacity:0}
+body.cooking .status{font-family:var(--f-head);font-style:italic;font-size:22px;color:var(--ink)}
+.skip{font-size:12px;color:var(--faint);opacity:0;height:0;overflow:visible}
+body.cooking .skip{opacity:1;transition:opacity .4s .8s}
+
+.pips{display:flex;gap:10px;justify-content:center}
+.pip{width:44px;height:44px;padding:0;border-radius:50%;border:1px dashed rgba(237,230,216,.17);background:transparent;display:grid;place-items:center}
+.pip.optional{border-style:dotted;opacity:.6}
+.pip.filled{border:0;background:var(--bg-2);box-shadow:inset 0 0 0 1px rgba(237,230,216,.06);transition:transform .2s var(--ease),box-shadow .2s}
+.pip.filled .art{width:20px;height:27px}
+.pip.filled:hover{transform:translateY(-2px);box-shadow:inset 0 0 0 1px rgba(157,102,91,.7)}
+.meter{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.count{font-family:var(--f-head);font-size:22px;line-height:1;color:var(--muted);font-variant-numeric:tabular-nums}
+.count b{color:var(--ink);font-weight:700}
+.status{font-size:13.5px;color:var(--muted);min-height:1.5em}
+.brew{min-width:230px;height:54px;padding:0 28px;border:0;border-radius:999px;
+  background:linear-gradient(180deg,#D4B67B,#B6955A);color:#1d1a12;
+  font-family:var(--f-head);font-weight:700;font-size:23px;letter-spacing:.04em;
+  box-shadow:0 8px 20px -10px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .15s var(--ease),filter .2s,box-shadow .2s}
+.brew:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.06)}
+.brew:active:not(:disabled){transform:translateY(1px)}
+.brew:disabled{background:var(--bg-2);color:var(--faint);box-shadow:none;cursor:not-allowed}
+.minor{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--faint)}
+.link{border:0;background:none;padding:4px 6px;border-radius:6px;color:var(--muted);font-size:13px;
+  text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px;transition:color .2s,text-decoration-color .2s}
+.link:hover{color:var(--ink);text-decoration-color:currentColor}
+.last{display:inline-flex;align-items:center;gap:10px;max-width:100%;border:0;border-radius:999px;background:var(--panel);padding:5px 16px 5px 5px;color:var(--muted);font-size:13px;transition:background .2s,color .2s}
+.last:hover{background:var(--bg-2);color:var(--ink)}
+.last[hidden]{display:none}
+.last span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- shelf ---------- */
+.col-shelf{grid-area:shelf;display:flex;flex-direction:column;min-height:0;overflow-y:auto;background:var(--panel);border-radius:var(--r-lg);padding:20px 0;scrollbar-width:thin;scrollbar-color:var(--surface) transparent}
+.bench{list-style:none;margin:0;padding:0 12px;display:flex;flex-direction:column;gap:2px}
+.bench-row{display:grid;grid-template-columns:28px minmax(0,1fr) 28px;gap:10px;align-items:center;padding:6px 8px;border-radius:var(--r-sm);transition:background .2s}
+.bench-row:hover{background:rgba(48,45,39,.6)}
+.bench-row .art{width:24px;height:32px}
+.br-txt{display:flex;flex-direction:column;min-width:0}
+.br-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.br-meta{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rm{width:28px;height:28px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--faint);display:grid;place-items:center;transition:color .2s,background .2s}
+.rm svg{width:12px;height:12px}
+.rm:hover{color:var(--ink);background:rgba(157,102,91,.4)}
+.bench-empty{padding:6px 8px;color:var(--faint);font-size:13.5px;font-style:italic}
+.bottled{margin-top:18px;padding:16px 20px 0;border-top:1px solid var(--line)}
+.bottled>summary{display:flex;align-items:baseline;justify-content:space-between;gap:10px;list-style:none;cursor:pointer}
+.bottled>summary::-webkit-details-marker{display:none}
+.bottled h3{font-family:var(--f-head);font-size:20px;font-weight:600;margin:0}
+.chev{width:14px;height:14px;color:var(--faint);transition:transform .2s;align-self:center}
+.bottled[open] .chev{transform:rotate(180deg)}
+.bottled>summary .quiet{margin-left:auto}
+.shelf-list{list-style:none;margin:8px 0 0;padding:0}
+.rk{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
+.sr-txt{min-width:0}
+.sr-name{display:block;font-size:13.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-sub{display:block;font-size:12px;color:var(--muted)}
+.sr-score{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.shelf-empty{color:var(--faint);font-style:italic;font-size:13.5px;padding:4px 0}
+.shelf-tools{margin-top:8px;font-size:13px;color:var(--muted)}
+.shelf-tools .link{padding-left:0}
+.confirm{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.chip-btn{border:0;border-radius:999px;padding:5px 12px;font-size:12.5px;background:var(--surface);color:var(--ink)}
+.chip-btn.danger{background:rgba(157,102,91,.55)}
+
+/* ---------- overlays ---------- */
+.scrim{position:fixed;inset:0;z-index:30;background:rgba(8,8,6,.58);opacity:0;visibility:hidden;transition:opacity .3s,visibility 0s .3s}
+.scrim.on{opacity:1;visibility:visible;transition:opacity .3s}
+
+.grimoire{position:fixed;top:0;right:0;bottom:0;z-index:40;width:min(440px,100%);display:flex;flex-direction:column;
+  background:#1d1e1a;box-shadow:-30px 0 60px -20px rgba(0,0,0,.65);
+  transform:translateX(100%);visibility:hidden;transition:transform .35s var(--ease),visibility 0s .35s}
+.grimoire.open{transform:none;visibility:visible;transition:transform .35s var(--ease)}
+.g-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:26px 28px 6px}
+.g-head h2{font-family:var(--f-head);font-size:32px;font-weight:600;line-height:1;margin:0}
+.g-head p{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.close-x{width:36px;height:36px;flex:none;border:0;border-radius:50%;background:transparent;color:var(--muted);display:grid;place-items:center;transition:background .2s,color .2s}
+.close-x:hover{background:var(--surface);color:var(--ink)}
+.close-x svg{width:14px;height:14px}
+.g-body{flex:1;overflow-y:auto;padding:10px 28px 36px;scrollbar-width:thin;scrollbar-color:var(--surface) transparent}
+.g-lede{font-family:var(--f-head);font-size:19px;font-style:italic;line-height:1.4;color:var(--ink);margin:4px 0 18px}
+.rule{border-top:1px solid var(--line)}
+.rule>summary{display:flex;align-items:center;justify-content:space-between;padding:13px 0;list-style:none;cursor:pointer;font-family:var(--f-head);font-size:19px;font-weight:600}
+.rule>summary::-webkit-details-marker{display:none}
+.rule>summary::after{content:"+";font-family:var(--f-ui);font-weight:400;font-size:18px;color:var(--gold);transition:transform .2s}
+.rule[open]>summary::after{transform:rotate(45deg)}
+.rule p{margin:0 0 12px;font-size:14px;color:var(--muted)}
+.rule strong{color:var(--ink);font-weight:600}
+.found-h{display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 12px;padding-top:18px;border-top:1px solid var(--line)}
+.found-h h3{font-family:var(--f-head);font-size:22px;font-weight:600;margin:0}
+.book-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.page{min-height:48px;padding:8px 10px;border-radius:var(--r-sm);background:var(--bg-2);font-size:13px;line-height:1.3}
+.page b{display:block;font-weight:600;color:var(--rc)}
+.page span{color:var(--muted);font-size:12px}
+.page.unknown{display:flex;align-items:center;background:transparent;border:1px dashed rgba(237,230,216,.1);color:var(--faint);font-style:italic}
+
+/* ---------- tonight's sky ---------- */
+.sky{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 14px;max-width:440px;font-size:12.5px;color:var(--muted);text-align:center}
+.sky span{display:inline-flex;align-items:center;gap:6px;cursor:help}
+.sky .lit{color:var(--gold-hi)}
+.moon-ico{width:14px;height:14px;flex:none}
+
+/* ---------- potion card moment ---------- */
+.result-layer{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;overflow:hidden;
+  --flash:color-mix(in srgb,var(--rc) 65%,#fff);
+  opacity:0;visibility:hidden;transition:opacity .35s,visibility 0s .35s}
+.result-layer.open{opacity:1;visibility:visible;transition:opacity .35s}
+.result-layer::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(640px 560px at 50% 40%,color-mix(in srgb,var(--rc) 20%,transparent),transparent 70%),rgba(10,10,8,.82)}
+.fx{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.mote{position:absolute;bottom:-10px;width:var(--s);height:var(--s);border-radius:50%;background:#F0D592;box-shadow:0 0 8px 2px rgba(240,213,146,.55);opacity:0;animation:mote linear infinite}
+.result-layer[data-rarity="heavenly"] .mote{background:#FFF6DC}
+@keyframes mote{0%{transform:translate(0,0);opacity:0}15%{opacity:.9}100%{transform:translate(var(--dx),-85vh);opacity:0}}
+.smoke{position:absolute;bottom:-80px;width:var(--s);height:var(--s);border-radius:50%;background:radial-gradient(closest-side,rgba(100,139,101,.5),transparent);filter:blur(9px);opacity:0;animation:smoke ease-out infinite}
+.smoke:nth-child(3n){background:radial-gradient(closest-side,rgba(126,108,154,.5),transparent)}
+@keyframes smoke{0%{transform:translate(0,0) scale(.6);opacity:0}25%{opacity:.85}100%{transform:translate(var(--dx),-60vh) scale(1.9);opacity:0}}
+.flash{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 42%,var(--flash),transparent 62%)}
+.layer-rays{position:absolute;left:50%;top:42%;width:1200px;height:1200px;margin:-600px 0 0 -600px;pointer-events:none;opacity:0;
+  background:repeating-conic-gradient(rgba(240,222,170,.10) 0 4deg,transparent 4deg 16deg);
+  -webkit-mask:radial-gradient(closest-side,#000 8%,transparent 70%);mask:radial-gradient(closest-side,#000 8%,transparent 70%)}
+.result-layer[data-rarity="heavenly"] .layer-rays{opacity:1;animation:spin 70s linear infinite}
+
+.result{position:relative;width:min(380px,100%);max-height:calc(100dvh - 32px);overflow-y:auto;overflow-x:hidden;padding:6px 18px 10px;text-align:center;scrollbar-width:none}
+.result::-webkit-scrollbar{display:none}
+.res-banner{display:inline-flex;align-items:center;gap:8px;margin:4px 0 14px;font-size:11.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--rc)}
+.res-banner.quiet-banner{color:var(--muted);font-weight:500}
+
+.pcard{position:relative;width:min(340px,100%);margin:0 auto;perspective:1400px;text-align:center}
+.pc-flip{position:relative;transform-style:preserve-3d}
+.pc-face,.pc-back{border-radius:18px;-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.pc-face{position:relative;padding:12px 12px 16px;background:linear-gradient(180deg,#23241f,#191a16);
+  box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--rc) 80%,transparent),0 30px 70px -28px rgba(0,0,0,.9)}
+.pc-face::before{content:"";position:absolute;inset:6px;border-radius:13px;border:1px solid color-mix(in srgb,var(--rc) 28%,transparent);pointer-events:none}
+.pc-back{position:absolute;inset:0;transform:rotateY(180deg);display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 50%,color-mix(in srgb,var(--rc) 24%,transparent),transparent 60%),
+             repeating-conic-gradient(rgba(237,230,216,.035) 0 8deg,transparent 8deg 16deg),#1b1c18;
+  box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--rc) 80%,transparent)}
+.pc-sigil{width:124px;height:124px;border-radius:50%;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--rc) 60%,transparent);
+  font-family:var(--f-head);font-style:italic;font-size:46px;color:var(--rc);box-shadow:0 0 0 8px rgba(0,0,0,.25),inset 0 0 0 6px rgba(0,0,0,.2)}
+.pc-top{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.pc-rarity{display:inline-flex;align-items:center;gap:8px;color:var(--rc);font-weight:600}
+.pc-no{color:var(--faint);letter-spacing:.06em}
+.pc-art{position:relative;height:196px;border-radius:12px;overflow:hidden;display:grid;place-items:center;
+  background:radial-gradient(58% 58% at 50% 62%,color-mix(in srgb,var(--pc) 40%,transparent),transparent 72%),#121310}
+.pc-art>svg{position:relative;z-index:1;height:172px;width:auto;overflow:visible;filter:drop-shadow(0 12px 18px rgba(0,0,0,.6))}
+.pc-art .stars,.pc-art .ring,.pc-art .rays{position:absolute;pointer-events:none}
+.pc-art .stars{inset:0;animation:twinkle 3s ease-in-out infinite alternate;
+  background-image:radial-gradient(1.3px 1.3px at 18% 24%,rgba(237,230,216,.75),transparent),radial-gradient(1px 1px at 78% 18%,rgba(237,230,216,.6),transparent),
+    radial-gradient(1.4px 1.4px at 86% 64%,rgba(237,230,216,.6),transparent),radial-gradient(1px 1px at 12% 72%,rgba(237,230,216,.5),transparent),
+    radial-gradient(1.2px 1.2px at 64% 86%,rgba(237,230,216,.5),transparent),radial-gradient(1px 1px at 36% 12%,rgba(237,230,216,.6),transparent)}
+@keyframes twinkle{from{opacity:.35}to{opacity:1}}
+.pc-art .ring{left:50%;top:50%;width:172px;height:172px;margin:-86px 0 0 -86px;border-radius:50%;border:1px dashed color-mix(in srgb,var(--rc) 70%,transparent);animation:spin 30s linear infinite}
+.pc-art .ring::after{content:"";position:absolute;inset:14px;border-radius:50%;border:1px solid color-mix(in srgb,var(--rc) 32%,transparent)}
+.pc-art .rays{inset:-40%;animation:spin 40s linear infinite;
+  background:repeating-conic-gradient(color-mix(in srgb,var(--rc) 30%,transparent) 0 5deg,transparent 5deg 20deg);
+  -webkit-mask:radial-gradient(closest-side,#000 15%,transparent 75%);mask:radial-gradient(closest-side,#000 15%,transparent 75%)}
+.pc-type{margin-top:12px;font-size:12.5px;color:var(--muted)}
+.pc-name{font-family:var(--f-head);font-size:29px;font-weight:600;line-height:1.08;margin:2px 8px 6px;text-wrap:balance}
+.pc-effect{font-family:var(--f-head);font-style:italic;font-size:17px;line-height:1.38;color:var(--muted);margin:0 10px 14px;text-wrap:pretty}
+.pc-stats{display:grid;grid-template-columns:repeat(3,1fr);margin:0 6px;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.pc-stats b{display:block;font-family:var(--f-head);font-size:25px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums}
+.pc-stats span{font-size:11px;color:var(--faint)}
+.pc-stats div:first-child b{color:var(--rc)}
+.pc-omens{list-style:none;display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin:12px 4px 0;padding:0}
+.pc-omens li{padding:4px 10px;border-radius:999px;background:rgba(48,45,39,.75);font-size:11.5px;color:var(--muted)}
+.pc-omens .none{background:none;font-style:italic;color:var(--faint)}
+.pc-recipe{display:flex;justify-content:center;gap:9px;margin-top:12px}
+.pc-recipe .art{width:17px;height:23px}
+.pcard[data-rarity="mythic"] .pc-face{box-shadow:inset 0 0 0 1.5px var(--rc),0 0 50px -18px var(--rc),0 30px 70px -28px rgba(0,0,0,.9)}
+.pcard[data-rarity="heavenly"] .pc-face{box-shadow:inset 0 0 0 1.5px var(--rc),0 0 70px -14px color-mix(in srgb,var(--rc) 70%,transparent),0 30px 70px -28px rgba(0,0,0,.9)}
+.pcard[data-rarity="heavenly"] .pc-face::after{content:"";position:absolute;inset:0;border-radius:18px;padding:1.5px;pointer-events:none;
+  background:conic-gradient(from var(--sheen),transparent 0 70%,rgba(255,246,214,.95) 80%,transparent 90%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+  animation:sheen 4s linear infinite}
+@property --sheen{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes sheen{to{--sheen:360deg}}
+.pcard::after{content:"";position:absolute;inset:0;border-radius:18px;border:2px solid var(--rc);opacity:0;pointer-events:none}
+
+.reacts{display:flex;flex-direction:column;gap:6px;margin:16px 0 4px;text-align:left}
+.react{padding:9px 12px;border-radius:10px;background:var(--bg-2);border-left:2px solid var(--rc);font-size:13.5px;color:var(--muted)}
+.react b{color:var(--ink);font-weight:600}
+.hint{margin:14px 0 4px;font-size:13.5px;color:var(--muted)}
+.hint strong{color:var(--ink);font-weight:600}
+.rank-line{font-size:12.5px;color:var(--faint)}
+.score{margin:12px 0 16px;border-top:1px solid var(--line);text-align:left}
+.score>summary{display:flex;justify-content:space-between;align-items:center;padding:12px 0 4px;list-style:none;cursor:pointer;font-size:13px;color:var(--muted)}
+.score>summary::-webkit-details-marker{display:none}
+.score>summary b{font-family:var(--f-head);font-size:20px;color:var(--ink)}
+.score>summary .chev{margin-left:8px}
+.score[open] .chev{transform:rotate(180deg)}
+.breakdown{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;margin-top:6px}
+.breakdown td{padding:5px 0;border-bottom:1px solid var(--line)}
+.breakdown td:last-child{text-align:right}
+.breakdown .why{color:var(--faint)}
+.breakdown tr.sub td{padding-top:12px;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.breakdown tr.total td{border-bottom:0;padding-top:9px;font-weight:600}
+.pos{color:#9CB87F}.neg{color:#CF8E80}
+.btn-close{width:100%;height:48px;border:0;border-radius:999px;background:var(--surface);color:var(--ink);font-weight:600;font-size:14px;transition:background .2s}
+.btn-close:hover{background:#3b3830}
+
+/* fresh brew: flash, the card flips over, then the rest arrives */
+.result-layer.reveal .flash{animation:flash 1s ease-out .15s both}
+@keyframes flash{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
+.result-layer.reveal .pc-flip{animation:flipIn 1.15s cubic-bezier(.2,.7,.2,1) .25s both}
+@keyframes flipIn{0%{opacity:0;transform:translateY(50px) rotateY(180deg) scale(.82)}30%{opacity:1}100%{opacity:1;transform:none}}
+.result-layer.reveal[data-rarity="legendary"] .pcard::after,
+.result-layer.reveal[data-rarity="mythic"] .pcard::after,
+.result-layer.reveal[data-rarity="heavenly"] .pcard::after{animation:shock .9s ease-out 1.3s}
+@keyframes shock{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.35)}}
+.result-layer.reveal[data-rarity="heavenly"] .layer-rays{animation:raysIn 1.4s ease-out 1.1s both,spin 70s linear infinite}
+.result-layer.reveal[data-rarity="heavenly"] .pc-flip{animation-duration:1.6s}
+@keyframes raysIn{from{opacity:0}to{opacity:1}}
+.result-layer.reveal .res-banner{animation:up .5s var(--ease) 1.2s both}
+.result-layer.reveal :is(.reacts,.hint,.rank-line,.score,.btn-close){animation:up .5s var(--ease) 1.45s both}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- grimoire tabs and potion collection ---------- */
+.grimoire{width:min(540px,100%)}
+.g-tabs{display:flex;gap:4px;padding:6px 22px 0;border-bottom:1px solid var(--line)}
+.g-tab{border:0;background:none;padding:10px 12px;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--muted);font-size:13.5px;font-weight:500;transition:color .2s,border-color .2s}
+.g-tab:hover{color:var(--ink)}
+.g-tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--gold)}
+.g-body{padding-top:20px}
+.g-panel[hidden]{display:none}
+.codex-group{margin-bottom:24px}
+.codex-h{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 10px}
+.codex-h h3{display:flex;align-items:center;gap:9px;margin:0;font-family:var(--f-head);font-size:21px;font-weight:600;color:var(--rc)}
+.codex{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:6px}
+.ptile{position:relative;border:0;border-radius:var(--r);padding:12px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+  background:var(--bg-2);color:var(--ink);font-size:12.5px;line-height:1.25;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rc) 32%,transparent);
+  transition:transform .2s var(--ease),background .2s}
+.ptile:hover{transform:translateY(-2px);background:var(--surface)}
+.ptile .art{width:30px;height:40px}
+.ptile small{font-size:11px;color:var(--faint)}
+.ptile.locked{background:transparent;color:var(--faint);font-style:italic;box-shadow:inset 0 0 0 1px rgba(237,230,216,.07);cursor:default}
+.ptile.locked:hover{transform:none}
+.ptile.locked .art{opacity:.4;filter:grayscale(1) brightness(.35)}
+.gem{width:11px;height:11px;flex:none;border-radius:2px;transform:rotate(45deg);background:var(--c)}
+.rar-scale{display:flex;flex-direction:column;gap:8px;margin:2px 0 14px}
+.rar-scale span{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--muted)}
+.rar-scale b{color:var(--ink);font-weight:600;min-width:84px}
+
+/* shelf rows open their card */
+.shelf-row{width:calc(100% + 12px);margin:0 -6px;display:grid;grid-template-columns:16px 12px minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:8px 6px;border:0;border-radius:var(--r-sm);background:transparent;text-align:left;transition:background .2s}
+.shelf-row:hover{background:rgba(48,45,39,.6)}
+.last .gem{margin-left:9px}
+
+@media (max-width:759px){
+  .pc-art{height:170px}
+  .pc-art>svg{height:150px}
+  .pc-name{font-size:26px}
+}
+
+/* fly-in orb */
+.orb{position:fixed;z-index:60;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 35% 35%,color-mix(in srgb,var(--c) 40%,#fff),var(--c));box-shadow:0 0 14px 2px color-mix(in srgb,var(--c) 60%,transparent)}
+
+.mbar{display:none}
+
+/* ---------- tablet ---------- */
+@media (max-width:1099px){
+  body{overflow:auto}
+  .app{height:auto;min-height:100dvh}
+  .layout{grid-template-columns:minmax(270px,310px) minmax(0,1fr);grid-template-areas:"ing pot" "ing shelf";align-items:start}
+  .col-ing{position:sticky;top:12px;height:calc(100dvh - 24px)}
+  .col-pot{overflow:visible;padding-top:16px}
+  .pot-wrap{width:min(440px,100%)}
+  .col-shelf{overflow:visible}
+}
+
+/* ---------- mobile ---------- */
+@media (max-width:759px){
+  .top{padding:14px 16px 2px}
+  .brand{font-size:25px}
+  .tagline,.icon-btn .lbl{display:none}
+  .icon-btn{padding:0 10px}
+  .layout{display:flex;flex-direction:column;align-items:stretch;gap:18px;padding:0 16px calc(100px + env(safe-area-inset-bottom,0px))}
+  .col-pot{gap:10px;padding-top:0}
+  .pot-wrap{width:min(330px,88vw);min-width:0}
+  .pips,.col-pot .brew{display:none}
+  .col-shelf{background:none;padding:0;border-radius:0}
+  .col-shelf .col-h{padding:0;margin-bottom:10px}
+  .col-shelf .col-h h2{font-size:21px}
+  .bench{flex-direction:row;flex-wrap:wrap;gap:6px;padding:0}
+  .bench-row{grid-template-columns:20px auto 24px;gap:6px;padding:4px 4px 4px 10px;border-radius:999px;background:var(--bg-2)}
+  .bench-row .art{width:16px;height:22px}
+  .br-meta{display:none}
+  .br-name{font-size:13px}
+  .rm{width:24px;height:24px}
+  .bench-empty{padding:0}
+  .bottled{padding:14px 0 0;margin-top:14px}
+
+  /* ingredients become a bottom sheet */
+  .col-ing{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:35;height:min(80dvh,660px);
+    border-radius:22px 22px 0 0;background:#1f201b;padding-top:8px;padding-bottom:calc(72px + env(safe-area-inset-bottom,0px));
+    box-shadow:0 -20px 50px rgba(0,0,0,.5);
+    transform:translateY(100%);visibility:hidden;transition:transform .35s var(--ease),visibility 0s .35s}
+  .col-ing.open{transform:none;visibility:visible;transition:transform .35s var(--ease)}
+  .col-ing::before{content:"";align-self:center;width:38px;height:4px;border-radius:4px;background:rgba(237,230,216,.18);margin-bottom:12px;flex:none}
+  .col-ing .col-h{align-items:center;padding:0 16px}
+  .col-h .drawer-close{display:grid}
+  .filters{padding:0 16px 10px}
+  .ing-scroll{padding:6px 8px 10px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+  .inspector{min-height:72px;padding:10px 16px 12px}
+
+  .mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:36;gap:10px;align-items:center;
+    padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+    background:rgba(23,24,21,.94);border-top:1px solid var(--line)}
+  .ing-btn{flex:1;height:50px;border:0;border-radius:999px;background:var(--bg-2);display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:14px}
+  .ing-btn svg{width:16px;height:16px;color:var(--gold)}
+  .ing-btn .quiet{font-weight:400;white-space:nowrap}
+  .mbar .brew{min-width:0;width:42%;height:50px;font-size:21px;padding:0 16px}
+  .result{padding:30px 20px 20px}
+  .res-name{font-size:29px}
+}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .bubble{opacity:.5}
+}
+</style>
+</head>
+<body>
+
+<!-- Bottle illustrations: one shape per essence, filled with each ingredient's own colour -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="j-flask" viewBox="0 0 48 64">
+      <clipPath id="c-flask"><path d="M20 6h8v14c9.5 2.6 16 10.6 16 20.5a20 20 0 0 1-40 0C4 30.6 10.5 22.6 20 20z"/></clipPath>
+      <path d="M20 6h8v14c9.5 2.6 16 10.6 16 20.5a20 20 0 0 1-40 0C4 30.6 10.5 22.6 20 20z" style="fill:rgba(237,230,216,.05)"/>
+      <rect x="0" y="35" width="48" height="30" clip-path="url(#c-flask)" style="fill:var(--c)"/>
+      <rect x="0" y="35" width="48" height="1.6" clip-path="url(#c-flask)" style="fill:rgba(255,255,255,.3)"/>
+      <path d="M20 6h8v14c9.5 2.6 16 10.6 16 20.5a20 20 0 0 1-40 0C4 30.6 10.5 22.6 20 20z" style="fill:none;stroke:rgba(237,230,216,.34);stroke-width:1.4"/>
+      <path d="M10.5 35c-1.6 4-1.6 9 .2 13" style="fill:none;stroke:rgba(255,255,255,.32);stroke-width:2;stroke-linecap:round"/>
+      <rect x="18.5" y="1.5" width="11" height="6.5" rx="1.6" style="fill:#7a5a3c"/>
+      <rect x="18.5" y="1.5" width="11" height="2" rx="1" style="fill:#94714d"/>
+    </symbol>
+    <symbol id="j-vial" viewBox="0 0 48 64">
+      <clipPath id="c-vial"><path d="M19 8h10v5c2 1 3 2.5 3 5v37a8 8 0 0 1-16 0V18c0-2.5 1-4 3-5z"/></clipPath>
+      <path d="M19 8h10v5c2 1 3 2.5 3 5v37a8 8 0 0 1-16 0V18c0-2.5 1-4 3-5z" style="fill:rgba(237,230,216,.05)"/>
+      <rect x="0" y="29" width="48" height="36" clip-path="url(#c-vial)" style="fill:var(--c)"/>
+      <rect x="0" y="29" width="48" height="1.6" clip-path="url(#c-vial)" style="fill:rgba(255,255,255,.3)"/>
+      <path d="M19 8h10v5c2 1 3 2.5 3 5v37a8 8 0 0 1-16 0V18c0-2.5 1-4 3-5z" style="fill:none;stroke:rgba(237,230,216,.34);stroke-width:1.4"/>
+      <path d="M20 22v28" style="fill:none;stroke:rgba(255,255,255,.3);stroke-width:2;stroke-linecap:round"/>
+      <rect x="18" y="2.5" width="12" height="7" rx="1.6" style="fill:#7a5a3c"/>
+      <rect x="18" y="2.5" width="12" height="2" rx="1" style="fill:#94714d"/>
+    </symbol>
+    <symbol id="j-jar" viewBox="0 0 48 64">
+      <clipPath id="c-jar"><path d="M13 14h22v3c3.5 1 5.5 3.5 5.5 7v30c0 3.5-2.5 6-6 6h-21c-3.5 0-6-2.5-6-6V24c0-3.5 2-6 5.5-7z"/></clipPath>
+      <path d="M13 14h22v3c3.5 1 5.5 3.5 5.5 7v30c0 3.5-2.5 6-6 6h-21c-3.5 0-6-2.5-6-6V24c0-3.5 2-6 5.5-7z" style="fill:rgba(237,230,216,.05)"/>
+      <rect x="0" y="31" width="48" height="34" clip-path="url(#c-jar)" style="fill:var(--c)"/>
+      <rect x="0" y="31" width="48" height="1.6" clip-path="url(#c-jar)" style="fill:rgba(255,255,255,.3)"/>
+      <path d="M13 14h22v3c3.5 1 5.5 3.5 5.5 7v30c0 3.5-2.5 6-6 6h-21c-3.5 0-6-2.5-6-6V24c0-3.5 2-6 5.5-7z" style="fill:none;stroke:rgba(237,230,216,.34);stroke-width:1.4"/>
+      <rect x="15" y="38" width="18" height="11" rx="1.5" style="fill:#d9ccae;opacity:.82"/>
+      <path d="M18 42.5h12M19.5 45.5h9" style="stroke:#6b5a43;stroke-width:1;opacity:.7"/>
+      <path d="M11.5 25v26" style="fill:none;stroke:rgba(255,255,255,.3);stroke-width:2;stroke-linecap:round"/>
+      <rect x="11" y="8" width="26" height="7" rx="2" style="fill:#5d4630"/>
+      <rect x="11" y="8" width="26" height="2.2" rx="1" style="fill:#7a5a3c"/>
+    </symbol>
+    <symbol id="j-facet" viewBox="0 0 48 64">
+      <clipPath id="c-facet"><path d="M20 7h8v10l10 8.5V54l-6 6H16l-6-6V25.5l10-8.5z"/></clipPath>
+      <path d="M20 7h8v10l10 8.5V54l-6 6H16l-6-6V25.5l10-8.5z" style="fill:rgba(237,230,216,.05)"/>
+      <rect x="0" y="33" width="48" height="32" clip-path="url(#c-facet)" style="fill:var(--c)"/>
+      <rect x="0" y="33" width="48" height="1.6" clip-path="url(#c-facet)" style="fill:rgba(255,255,255,.3)"/>
+      <path d="M20 7h8v10l10 8.5V54l-6 6H16l-6-6V25.5l10-8.5z" style="fill:none;stroke:rgba(237,230,216,.34);stroke-width:1.4;stroke-linejoin:round"/>
+      <path d="M24 17v43M10 25.5h28" style="stroke:rgba(237,230,216,.12);stroke-width:1"/>
+      <path d="M13.5 29v22" style="fill:none;stroke:rgba(255,255,255,.3);stroke-width:2;stroke-linecap:round"/>
+      <path d="M19 2.5h10l-1 6h-8z" style="fill:#3d3448"/>
+      <circle cx="24" cy="3" r="2.6" style="fill:#5a4d6b"/>
+    </symbol>
+    <symbol id="j-crock" viewBox="0 0 48 64">
+      <clipPath id="c-crock"><path d="M16 12h16v4c6 2.5 10 7.5 10 14v17c0 7.5-5.5 13-13 13h-10C11.5 60 6 54.5 6 47V30c0-6.5 4-11.5 10-14z"/></clipPath>
+      <path d="M16 12h16v4c6 2.5 10 7.5 10 14v17c0 7.5-5.5 13-13 13h-10C11.5 60 6 54.5 6 47V30c0-6.5 4-11.5 10-14z" style="fill:rgba(237,230,216,.05)"/>
+      <rect x="0" y="30" width="48" height="35" clip-path="url(#c-crock)" style="fill:var(--c)"/>
+      <rect x="0" y="30" width="48" height="1.6" clip-path="url(#c-crock)" style="fill:rgba(255,255,255,.3)"/>
+      <path d="M16 12h16v4c6 2.5 10 7.5 10 14v17c0 7.5-5.5 13-13 13h-10C11.5 60 6 54.5 6 47V30c0-6.5 4-11.5 10-14z" style="fill:none;stroke:rgba(237,230,216,.34);stroke-width:1.4"/>
+      <path d="M10.5 32c-1 5-1 11 .2 15" style="fill:none;stroke:rgba(255,255,255,.3);stroke-width:2;stroke-linecap:round"/>
+      <path d="M14 7h20v6H14z" style="fill:#c9b48a"/>
+      <path d="M14 13h20" style="stroke:#8a6f4a;stroke-width:1.6"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="scene" aria-hidden="true">
+  <div class="moon"></div>
+  <svg class="bat" style="left:41%;top:12%" viewBox="0 0 32 14"><path d="M16 4c1-2 2-2 2.4 0 .8-1 1.6-.6 2 .6C23 1 27 0 32 2c-3 1-4.5 3-5 6-1.5-1.4-3.2-1.6-4.6-.6-1 .2-2.2 1.6-3.2 4-1-1.2-2-1.8-3.2-1.8s-2.2.6-3.2 1.8c-1-2.4-2.2-3.8-3.2-4C8.2 6.4 6.5 6.6 5 8c-.5-3-2-5-5-6 5-2 9-1 11.6 2.6.4-1.2 1.2-1.6 2-.6C14 2 15 2 16 4z"/></svg>
+  <svg class="bat" style="left:56%;top:7%;width:18px" viewBox="0 0 32 14"><path d="M16 4c1-2 2-2 2.4 0 .8-1 1.6-.6 2 .6C23 1 27 0 32 2c-3 1-4.5 3-5 6-1.5-1.4-3.2-1.6-4.6-.6-1 .2-2.2 1.6-3.2 4-1-1.2-2-1.8-3.2-1.8s-2.2.6-3.2 1.8c-1-2.4-2.2-3.8-3.2-4C8.2 6.4 6.5 6.6 5 8c-.5-3-2-5-5-6 5-2 9-1 11.6 2.6.4-1.2 1.2-1.6 2-.6C14 2 15 2 16 4z"/></svg>
+  <svg class="bat" style="left:60%;top:16%;width:14px" viewBox="0 0 32 14"><path d="M16 4c1-2 2-2 2.4 0 .8-1 1.6-.6 2 .6C23 1 27 0 32 2c-3 1-4.5 3-5 6-1.5-1.4-3.2-1.6-4.6-.6-1 .2-2.2 1.6-3.2 4-1-1.2-2-1.8-3.2-1.8s-2.2.6-3.2 1.8c-1-2.4-2.2-3.8-3.2-4C8.2 6.4 6.5 6.6 5 8c-.5-3-2-5-5-6 5-2 9-1 11.6 2.6.4-1.2 1.2-1.6 2-.6C14 2 15 2 16 4z"/></svg>
+  <div class="fog"></div>
+</div>
+
+<div class="app">
+  <header class="top">
+    <div>
+      <h1 class="brand">Apothecary's <em>Grimoire</em></h1>
+      <p class="tagline">Pick five or six ingredients, read the omens, and fill your grimoire.</p>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="grim-btn" type="button" aria-haspopup="dialog" aria-controls="grimoire">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M12 7.5l1 2 2 .3-1.5 1.4.4 2-1.9-1-1.9 1 .4-2L9 9.8l2-.3z"/></svg>
+        <span class="lbl">Grimoire</span>
+        <span class="found" id="grim-count"></span>
+      </button>
+      <button class="icon-btn" id="sound-btn" type="button" aria-pressed="true" aria-label="Sound">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="mute" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="col-ing" id="pantry" aria-labelledby="pantry-h">
+      <div class="col-h">
+        <h2 id="pantry-h">Ingredients</h2>
+        <span class="quiet" id="pantry-count">50 on the shelves</span>
+        <button class="close-x drawer-close" id="drawer-close" type="button" aria-label="Close ingredients">
+          <svg viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2l10 10M12 2L2 12"/></svg>
+        </button>
+      </div>
+      <div class="filters" id="filters"></div>
+      <div class="ing-scroll"><div class="grid" id="ing-grid"></div></div>
+      <div class="inspector" id="inspector" aria-live="polite"></div>
+    </section>
+
+    <section class="col-pot" id="station" aria-labelledby="station-h">
+      <h2 id="station-h" class="sr-only">The Cauldron</h2>
+      <div class="pot-wrap" id="pot-wrap">
+        <div class="steam" aria-hidden="true"><span></span><span></span><span></span></div>
+        <svg class="pot" viewBox="0 0 400 340" aria-hidden="true">
+          <defs>
+            <radialGradient id="fireGlow"><stop offset="0" stop-color="#E09A4F" stop-opacity=".55"/><stop offset="1" stop-color="#E09A4F" stop-opacity="0"/></radialGradient>
+            <linearGradient id="iron" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2b2924"/><stop offset=".42" stop-color="#1b1a17"/><stop offset="1" stop-color="#0d0d0b"/></linearGradient>
+            <radialGradient id="bellyLight" cx="50%" cy="100%" r="62%"><stop offset="0" stop-color="#C47A3E" stop-opacity=".38"/><stop offset="1" stop-color="#C47A3E" stop-opacity="0"/></radialGradient>
+            <filter id="soft" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="9"/></filter>
+          </defs>
+          <ellipse class="fire-glow" cx="200" cy="318" rx="160" ry="34" fill="url(#fireGlow)"/>
+          <g>
+            <rect x="122" y="312" width="156" height="13" rx="6.5" fill="#2b2119" transform="rotate(-5 200 318)"/>
+            <rect x="122" y="312" width="156" height="13" rx="6.5" fill="#33271d" transform="rotate(5 200 318)"/>
+          </g>
+          <g class="flames">
+            <path class="flame" d="M152 318c-8-18 4-30 6-46 10 16 18 30 10 46z" fill="#C47A3E"/>
+            <path class="flame" d="M174 318c-10-24 6-40 10-62 14 22 22 42 12 62z" fill="#E0B866"/>
+            <path class="flame" d="M200 318c-12-26 8-46 12-72 14 26 24 48 12 72z" fill="#F0CF86"/>
+            <path class="flame" d="M228 318c-8-20 6-34 8-52 12 18 18 34 8 52z" fill="#C47A3E"/>
+            <path class="flame" d="M246 318c-6-14 4-24 6-36 8 12 12 24 6 36z" fill="#9D4E2E"/>
+          </g>
+          <path d="M112 270L94 328h20l16-46z" fill="#121210" stroke="#2f2c26" stroke-width="2"/>
+          <path d="M288 270l18 58h-20l-16-46z" fill="#121210" stroke="#2f2c26" stroke-width="2"/>
+          <path d="M54 140c-24 4-28 36-4 42" fill="none" stroke="#35322b" stroke-width="7" stroke-linecap="round"/>
+          <path d="M346 140c24 4 28 36 4 42" fill="none" stroke="#2a2823" stroke-width="7" stroke-linecap="round"/>
+          <path d="M52 112C48 222 108 298 200 298S352 222 348 112z" fill="url(#iron)" stroke="#3a372f" stroke-width="2"/>
+          <path d="M52 112C48 222 108 298 200 298S352 222 348 112z" fill="url(#bellyLight)"/>
+          <path d="M82 150c2 50 26 94 62 116" fill="none" stroke="rgba(237,230,216,.06)" stroke-width="12" stroke-linecap="round"/>
+          <ellipse class="glow" cx="200" cy="114" rx="140" ry="28" filter="url(#soft)"/>
+          <ellipse cx="200" cy="112" rx="156" ry="30" fill="#24221d" stroke="#4a463b" stroke-width="3"/>
+          <ellipse cx="200" cy="114" rx="141" ry="23" fill="#0b0b09"/>
+          <ellipse class="liquid" cx="200" cy="118" rx="131" ry="18"/>
+          <ellipse class="vortex" cx="200" cy="118" rx="96" ry="12"/>
+          <ellipse class="vortex v2" cx="200" cy="118" rx="56" ry="7"/>
+          <ellipse cx="168" cy="113" rx="46" ry="4" fill="#fff" opacity=".13"/>
+          <ellipse class="ripple" cx="200" cy="118" rx="22" ry="4"/>
+          <ellipse class="ripple r2" cx="200" cy="118" rx="22" ry="4"/>
+          <path d="M48 106A156 30 0 0 1 352 106" fill="none" stroke="rgba(237,230,216,.16)" stroke-width="2"/>
+        </svg>
+        <div class="bubbles" id="bubbles" aria-hidden="true"></div>
+        <div class="sparks" id="sparks" aria-hidden="true"></div>
+        <div class="beam" aria-hidden="true"></div>
+        <div class="drops" id="drops" aria-hidden="true"></div>
+      </div>
+
+      <div class="pips" id="slots"></div>
+      <div class="meter">
+        <span class="count" aria-label="Ingredients chosen"><b id="sel-n">0</b> / 6</span>
+        <span class="status" id="status" aria-live="polite"></span>
+        <span class="skip" id="skip" aria-hidden="true">Click anywhere to skip</span>
+      </div>
+      <button class="brew" id="brew-btn" type="button">Brew</button>
+      <div class="minor">
+        <button class="link" id="random-btn" type="button" title="Pick a random handful">Random handful</button>
+        <span aria-hidden="true">·</span>
+        <button class="link" id="clear-btn" type="button">Clear</button>
+      </div>
+      <div class="sky" id="sky" role="note"></div>
+      <button class="last" id="last-btn" type="button" hidden></button>
+    </section>
+
+    <aside class="col-shelf" aria-labelledby="shelf-h">
+      <div class="col-h">
+        <h2 id="shelf-h">Your Shelf</h2>
+        <span class="quiet" id="bench-count">0 / 6</span>
+      </div>
+      <ul class="bench" id="bench" aria-label="Chosen ingredients"></ul>
+      <details class="bottled" id="bottled">
+        <summary>
+          <h3>Bottled potions</h3>
+          <span class="quiet" id="bottled-n"></span>
+          <svg class="chev" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5l4 4 4-4"/></svg>
+        </summary>
+        <ol class="shelf-list" id="shelf-list"></ol>
+        <div class="shelf-tools" id="shelf-tools"></div>
+      </details>
+    </aside>
+  </main>
+</div>
+
+<div class="mbar" id="mbar">
+  <button class="ing-btn" id="mbar-ing" type="button" aria-controls="pantry" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v5L5 18a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-10V3"/><path d="M7.5 14h9"/></svg>
+    Ingredients <span class="quiet" id="mbar-count">0 / 6 chosen</span>
+  </button>
+  <button class="brew" id="mbar-brew" type="button">Brew</button>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="grimoire" id="grimoire" role="dialog" aria-modal="true" aria-labelledby="book-h" tabindex="-1">
+  <div class="g-head">
+    <div>
+      <h2 id="book-h">Grimoire</h2>
+      <p id="book-count"></p>
+    </div>
+    <button class="close-x" type="button" data-close aria-label="Close grimoire">
+      <svg viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2l10 10M12 2L2 12"/></svg>
+    </button>
+  </div>
+  <div class="g-tabs" role="tablist" aria-label="Grimoire sections">
+    <button class="g-tab" type="button" role="tab" data-gtab="potions" aria-selected="true">Potions</button>
+    <button class="g-tab" type="button" role="tab" data-gtab="reactions" aria-selected="false">Reactions</button>
+    <button class="g-tab" type="button" role="tab" data-gtab="lore" aria-selected="false">Lore</button>
+  </div>
+  <div class="g-body">
+    <section class="g-panel" data-gpanel="potions" role="tabpanel" aria-label="Potions">
+      <div id="codex"></div>
+    </section>
+
+    <section class="g-panel" data-gpanel="reactions" role="tabpanel" aria-label="Reactions" hidden>
+      <div class="found-h" style="margin-top:0;padding-top:0;border-top:0">
+        <h3>Reactions found</h3>
+        <span class="quiet" id="book-found"></span>
+      </div>
+      <div class="book-grid" id="book-grid"></div>
+    </section>
+
+    <section class="g-panel" data-gpanel="lore" role="tabpanel" aria-label="Lore" hidden>
+      <p class="g-lede">Pick five or six ingredients and brew. Your ingredients set the brew's craft. The night adds its omens. Together they decide how rare a potion you bottle.</p>
+      <details class="rule" open>
+        <summary>How the cauldron judges</summary>
+        <p>Every ingredient has a hidden bane or balm value and a power. Brewing one reveals its numbers on its label.</p>
+        <p>More bane makes a poison, more balm makes an elixir. Ingredients that pull the other way cause <strong>discord</strong>. Three or more of one essence builds <strong>harmony</strong>. Some pairs react, for better or worse.</p>
+        <p>All of that is the brew's <strong>craft</strong>. Add the <strong>omens</strong> and you get its <strong>arcana</strong>, which sets its rarity.</p>
+      </details>
+      <details class="rule">
+        <summary>Bane and balm</summary>
+        <p>The cauldron adds up every bane and balm. If bane wins, you brewed a <strong>poison</strong>. Otherwise it is an <strong>elixir</strong>. The winning margin, doubled, becomes the brew's potency.</p>
+      </details>
+      <details class="rule">
+        <summary>Power, discord and harmony</summary>
+        <p>Every ingredient's power is added together. An ingredient that pulls against the brew costs twice its value as discord, and <strong>Rock Salt</strong> halves the discord.</p>
+        <p>The most common essence names the potion and adds harmony: two of a kind give +2, three +5, four +9, five +13, six +16. Commons carry no essence.</p>
+      </details>
+      <details class="rule">
+        <summary>Pairs, commons and the true base</summary>
+        <p>A bond adds 6, a clash takes 6 away, and <strong>Spring Water</strong> cancels one clash. <strong>Honey</strong> adds 4 to an elixir, <strong>Vinegar</strong> 4 to a poison and <strong>Candle Wax</strong> 3 to anything.</p>
+        <p>The first ingredient you add is the <strong>base</strong>. If it shares the brew's leading essence, the brew gains 3.</p>
+      </details>
+      <details class="rule">
+        <summary>Omens</summary>
+        <p><strong>The moon.</strong> A full moon adds 6 to elixirs and costs poisons 2. A new moon does the opposite. A gibbous moon adds 3 to elixirs, a crescent adds 3 to poisons.</p>
+        <p><strong>The hour.</strong> The witching hour (midnight to 4am) adds 5. Nightfall (7pm onward) adds 2. Dawn adds 3 to elixirs and costs poisons 2. Daylight costs poisons 2.</p>
+        <p><strong>The date.</strong> All Hallows' Eve adds 8. The Day of the Dead adds 2, or 5 to bone brews. Friday the 13th adds 5 to poisons and costs elixirs 2.</p>
+        <p><strong>The pot.</strong> Brewing the same essence again seasons the pot: +2 for the second brew in a row, up to +6. An untried recipe adds 3. Every brew also gets the cauldron's whim, from −3 to +5.</p>
+      </details>
+      <details class="rule">
+        <summary>Rarity</summary>
+        <div class="rar-scale" id="rar-scale"></div>
+        <p>A Heavenly brew also needs a sign in the sky: a full or new moon, the witching hour, or All Hallows' Eve. Brews made only of commons stay Common.</p>
+      </details>
+    </section>
+  </div>
+</aside>
+
+<div class="result-layer" id="result-layer" role="dialog" aria-modal="true" aria-labelledby="res-name">
+  <div class="flash" aria-hidden="true"></div>
+  <div class="fx" id="fx" aria-hidden="true"></div>
+  <div class="result" id="result" aria-live="polite"></div>
+</div>
+
+<script>
+// <logic>
+const ESS = {
+  blood:  { label:'Blood',  glyph:'♥',        css:'var(--e-blood)'  },
+  bone:   { label:'Bone',   glyph:'☠︎',  css:'var(--e-bone)'   },
+  spirit: { label:'Spirit', glyph:'✧',        css:'var(--e-spirit)' },
+  shadow: { label:'Shadow', glyph:'☾',        css:'var(--e-shadow)' },
+  common: { label:'Common', glyph:'◦',        css:'var(--e-common)' }
+};
+// [name, essence, bane(+)/balm(-), power, liquid colour]
+const RAW = [
+  ['Vampire Fang','blood',3,4,'#9e1b32'],
+  ['Bat Wing','blood',1,2,'#5a2a3d'],
+  ['Fat Leech','blood',2,2,'#6b1f1f'],
+  ['Bloodroot','blood',-1,2,'#b5423c'],
+  ['Heartbeat Rose','blood',-2,3,'#d6336c'],
+  ["Dragon's Blood Resin",'blood',-2,4,'#a1141f'],
+  ['Werewolf Fur','blood',2,3,'#6b4a3a'],
+  ['Crimson Cap','blood',1,1,'#c0392b'],
+  ['Pomegranate Seeds','blood',-1,1,'#e0405a'],
+  ['Rusted Nail','blood',2,1,'#8a4b2a'],
+  ['Graveyard Dirt','bone',1,2,'#5a4a3a'],
+  ['Skull Dust','bone',2,3,'#d9d0bc'],
+  ['Raven Bone','bone',1,2,'#bfb6a3'],
+  ['Mandrake Root','bone',-2,4,'#a68a5b'],
+  ['Ancient Amber','bone',-2,3,'#d18b1f'],
+  ['Snail Shell','bone',-1,1,'#b9a37e'],
+  ['Tombstone Moss','bone',-1,2,'#6f8a4a'],
+  ['Troll Tooth','bone',-1,3,'#cfc6a8'],
+  ['Petrified Toad','bone',2,2,'#7d7a5c'],
+  ['Mummy Linen','bone',-1,2,'#e3d6b4'],
+  ['Grave Worm','bone',1,1,'#a5776a'],
+  ['Ghost Breath','spirit',-2,3,'#cfeff2'],
+  ["Will-o'-Wisp",'spirit',-1,2,'#9be7c4'],
+  ['Banshee Tear','spirit',2,4,'#8fb9e8'],
+  ['Ectoplasm','spirit',1,2,'#8be06a'],
+  ['Moonflower','spirit',-2,3,'#e9e4ff'],
+  ['Owl Feather','spirit',-1,1,'#bba98c'],
+  ['Séance Smoke','spirit',1,2,'#9e9ab3'],
+  ['Pixie Dust','spirit',-1,2,'#f3c4ff'],
+  ['Mirror Shard','spirit',2,3,'#c8d6e5'],
+  ['Lavender Sprig','spirit',-1,1,'#a98bd6'],
+  ['Nightshade','shadow',3,3,'#3b1f5c'],
+  ['Black Cat Whisker','shadow',1,2,'#2a2530'],
+  ['Spider Silk','shadow',1,1,'#d8d8e0'],
+  ['Wolfsbane','shadow',2,3,'#5b3f8f'],
+  ['Eye of Newt','shadow',1,2,'#c7a62b'],
+  ['Hemlock','shadow',3,4,'#3f5b2e'],
+  ['Eclipse Ash','shadow',-1,4,'#2e2c36'],
+  ['Midnight Lotus','shadow',-2,3,'#2c2f7a'],
+  ['Shadow Truffle','shadow',-1,2,'#3a2a22'],
+  ['Crow Feather','shadow',1,1,'#262a35'],
+  ['Spring Water','common',0,0,'#6fa8c7'],
+  ['Rock Salt','common',0,0,'#e6e2dc'],
+  ['Honey','common',-1,1,'#e3a21a'],
+  ['Vinegar','common',1,1,'#c9b458'],
+  ['Goat Milk','common',-1,0,'#f2efe6'],
+  ['Candle Wax','common',0,1,'#efe0b0'],
+  ['Pumpkin Pulp','common',-1,1,'#e8741e'],
+  ['Garlic Clove','common',-1,1,'#efe8d2'],
+  ['Black Pepper','common',1,1,'#4a4440']
+];
+const ING = RAW.map(([name,ess,tox,pow,color],id)=>({id,name,ess,tox,pow,color}));
+const BY = Object.fromEntries(ING.map(i=>[i.name,i]));
+const COMMON_FX = {
+  'Spring Water':'Cancels one bad reaction',
+  'Rock Salt':'Halves discord',
+  'Honey':'+4 if it brews an elixir',
+  'Vinegar':'+4 if it brews a poison',
+  'Candle Wax':'+3, steadies any brew',
+  'Goat Milk':'A gentle soother',
+  'Pumpkin Pulp':'A mild soother',
+  'Garlic Clove':'Wards off the undead',
+  'Black Pepper':'Adds a little bite'
+};
+const mk = (list,kind)=>list.map(([a,b,name,note])=>({a:BY[a].id,b:BY[b].id,name,note,kind}));
+const SYN = mk([
+  ['Vampire Fang','Bat Wing','Night Hunter','The fang and the wing remember each other.'],
+  ['Mandrake Root','Graveyard Dirt','Rooted Deep','The root drinks the grave soil and swells.'],
+  ['Ghost Breath','Banshee Tear','Wailing Chorus','Two spirits sing in harmony.'],
+  ['Nightshade','Hemlock','Deadly Garden','The two poisons braid together.'],
+  ['Heartbeat Rose',"Dragon's Blood Resin",'Second Heart','A second pulse throbs in the brew.'],
+  ['Moonflower','Midnight Lotus','Twin Blooms','Both petals open at once.'],
+  ['Eye of Newt','Petrified Toad','Swamp Kin','Old swamp friends, reunited.'],
+  ['Spider Silk','Black Cat Whisker','Woven Luck','Fortune gets tangled in the silk.'],
+  ['Honey','Pixie Dust','Sweet Glimmer','The honey sparkles.'],
+  ['Raven Bone','Crow Feather','Corvid Pact','A quiet pact between birds.']
+],'syn');
+const CLASH = mk([
+  ['Vampire Fang','Garlic Clove','Hiss and Smoke','The fang shrinks from the garlic.'],
+  ['Werewolf Fur','Wolfsbane','Silver Flinch','The fur bristles and singes.'],
+  ['Ghost Breath','Rock Salt','Salt Circle','The salt banishes the breath.'],
+  ['Candle Wax','Ectoplasm','Snuffed Flame','The ectoplasm smothers the wax.'],
+  ['Honey','Vinegar','Sour Sweet','Neither wins. Both lose.'],
+  ['Goat Milk','Vinegar','Curdled','Lumps. So many lumps.'],
+  ['Moonflower','Eclipse Ash','Moon Blotted','The ash blots out the moon.'],
+  ['Skull Dust','Pixie Dust','Dust Storm','The two dusts start a small storm.']
+],'clash');
+const REACTIONS = [...SYN, ...CLASH];
+const HARMONY = [0,0,2,5,9,13,16];
+
+/* Rarity ladder, rarest first. Arcana = craft + omens. Heavenly also needs a sign in the sky. */
+const RARITY = [
+  {id:'heavenly',  label:'Heavenly',  min:75,        css:'var(--r-heavenly)'},
+  {id:'mythic',    label:'Mythic',    min:58,        css:'var(--r-mythic)'},
+  {id:'legendary', label:'Legendary', min:44,        css:'var(--r-legendary)'},
+  {id:'rare',      label:'Rare',      min:28,        css:'var(--r-rare)'},
+  {id:'common',    label:'Common',    min:-Infinity, css:'var(--r-common)'}
+];
+const RAR = Object.fromEntries(RARITY.map(r=>[r.id,r]));
+
+/* Every potion that can be bottled: 12 common, 8 rare, 6 legendary, 3 mythic, 2 heavenly.
+   [id, rarity, type ('*' = either), essences it answers to ('*' = any), name, effect] */
+const POTIONS = [
+  ['faint-flush','common','elixir','blood','Faint Flush','Your cheeks turn pink. That is all.'],
+  ['chalky-broth','common','elixir','bone','Chalky Broth','Mildly fortifying. Tastes of old basements.'],
+  ['sleepy-mist','common','elixir','spirit','Sleepy Mist','A pleasant yawn and a short nap.'],
+  ['murky-night-tea','common','elixir','shadow','Murky Night Tea','You feel slightly more mysterious.'],
+  ['nosebleed-nectar','common','poison','blood','Nosebleed Nectar','Unpleasant, messy, survivable.'],
+  ['graveyard-grit','common','poison','bone','Graveyard Grit','A stomachache and the taste of dirt.'],
+  ['chill-of-unease','common','poison','spirit','Chill of Unease','Goosebumps that will not go away.'],
+  ['bad-omen-brew','common','poison','shadow','Bad Omen Brew','Mild misfortune. Milk spoils near you.'],
+  ['cloudy-puddle','common','elixir','dud','Cloudy Puddle','A potion only in the loosest sense.'],
+  ['fizzling-hex','common','poison','dud','Fizzling Hex','It cackled once and gave up.'],
+  ['kitchen-sink-soup','common','*','pantry','Kitchen Sink Soup','No magic at all, just a pot of pantry odds and ends. Add something strange.'],
+  ['jack-o-lantern-tea','common','*','pumpkin',"Jack-o'-Lantern Tea",'Glows a faint orange and smells of carved pumpkin. Harmless, mostly.'],
+  ['rosy-restorative','rare','elixir','blood','Rosy Restorative','Cures a fever and most heartbreaks.'],
+  ['sturdy-stock','rare','elixir','bone','Sturdy Stock','Aches fade and your posture improves.'],
+  ['calm-spirits-tea','rare','elixir','spirit','Calm Spirits Tea','A gentle hush settles every racing thought.'],
+  ['lamplighters-draught','rare','elixir','shadow',"Lamplighter's Draught",'See clearly through fog and candlelight.'],
+  ['fever-ruby','rare','poison','blood','Fever Ruby','A burning fever and visions of bats.'],
+  ['brittle-bane','rare','poison','bone','Brittle Bane','Bones ache and creak like old stairs.'],
+  ['haunting-draught','rare','poison','spirit','Haunting Draught','Cold whispers follow the drinker for three nights.'],
+  ['black-cat-curse','rare','poison','shadow','Black Cat Curse','Every step finds a puddle. Every ladder falls.'],
+  ['crimson-vigor','legendary','elixir','blood bone','Crimson Vigor Draught','Wounds close as you watch. A warm blush lasts a week.'],
+  ['whisperwind-cordial','legendary','elixir','spirit','Whisperwind Cordial','Dreams arrive as clear as memories.'],
+  ['duskwalkers-brew','legendary','elixir','shadow',"Duskwalker's Brew",'Perfect night vision and silent footsteps.'],
+  ['gravediggers-grip','legendary','poison','blood bone',"Gravedigger's Grip",'Every joint locks solid as a tombstone.'],
+  ['hollow-echo','legendary','poison','spirit','Hollow Echo','The drinker forgets their own name, then their face.'],
+  ['nightshade-requiem','legendary','poison','shadow','Nightshade Requiem','Sleep comes, and it does not end politely.'],
+  ['veil-of-the-hollow-moon','mythic','*','shadow','Veil of the Hollow Moon','Walk unseen through any door for one full night.'],
+  ['lanternlight-ambrosia','mythic','elixir','blood bone spirit','Lanternlight Ambrosia','Grants one conversation with any soul, living or long gone.'],
+  ['banshees-last-lullaby','mythic','poison','blood bone spirit',"Banshee's Last Lullaby",'The soul slips away and leaves the body to wander.'],
+  ['seraphs-last-light','heavenly','elixir','*',"Seraph's Last Light",'Heals every wound the drinker ever had, and a few they have yet to suffer.'],
+  ['nocturne-of-the-blood-count','heavenly','poison','*','Nocturne of the Blood Count','One drop and the drinker belongs to the night forever.']
+].map(([id,rarity,type,ess,name,effect],k)=>({id,rarity,type,ess,name,effect,no:k+1}));
+const POT = Object.fromEntries(POTIONS.map(p=>[p.id,p]));
+const SPECIAL = ['dud','pantry','pumpkin'];
+
+/* Craft: everything the ingredients themselves decide. */
+function evaluate(ids){
+  const items = ids.map(id=>ING[id]);
+  const set = new Set(ids);
+  const has = n => set.has(BY[n].id);
+  const tox = items.reduce((s,i)=>s+i.tox,0);
+  const type = tox>0 ? 'poison' : 'elixir';
+  const sign = type==='poison' ? 1 : -1;
+  const power = items.reduce((s,i)=>s+i.pow,0);
+  const potency = Math.abs(tox)*2;
+  const counts={}, pw={};
+  items.forEach(i=>{ if(i.ess!=='common'){ counts[i.ess]=(counts[i.ess]||0)+1; pw[i.ess]=(pw[i.ess]||0)+i.pow; } });
+  let dominant=null;
+  Object.keys(counts).forEach(e=>{
+    if(!dominant || counts[e]>counts[dominant] || (counts[e]===counts[dominant] && pw[e]>pw[dominant])) dominant=e;
+  });
+  const domCount = dominant ? counts[dominant] : 0;
+  const harmony = HARMONY[domCount];
+  let discord = 0; const against = [];
+  items.forEach(i=>{ if(i.tox*sign<0){ discord+=Math.abs(i.tox)*2; against.push(i); } });
+  const salted = has('Rock Salt') && discord>0;
+  if(has('Rock Salt')) discord = Math.ceil(discord/2);
+  const syn = SYN.filter(r=>set.has(r.a)&&set.has(r.b));
+  const clashes = CLASH.filter(r=>set.has(r.a)&&set.has(r.b));
+  const cancelled = has('Spring Water') && clashes.length ? clashes[0] : null;
+  const reactions = syn.length*6 - (clashes.length-(cancelled?1:0))*6;
+  let kitchen = 0; const kitchenWhy=[];
+  if(has('Honey') && type==='elixir'){ kitchen+=4; kitchenWhy.push('honey'); }
+  if(has('Vinegar') && type==='poison'){ kitchen+=4; kitchenWhy.push('vinegar'); }
+  if(has('Candle Wax')){ kitchen+=3; kitchenWhy.push('wax'); }
+  // The first ingredient is the base; matching the leading essence steadies the whole brew.
+  const trueBase = dominant && items[0].ess===dominant ? 3 : 0;
+  const craft = power + potency + harmony + reactions - discord + kitchen + trueBase;
+  return {ids:[...ids], type, tox, power, potency, dominant, domCount, harmony, discord, against, salted,
+          syn, clashes, cancelled, reactions, kitchen, kitchenWhy, trueBase, craft};
+}
+
+/* The sky and the calendar at the moment of brewing. */
+const SYNODIC = 29.530588853, NEW_MOON_REF = Date.UTC(2000,0,6,18,14);
+const MOONS = ['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent'];
+const HOURS = {witching:'Witching hour', nightfall:'Nightfall', dawn:'Dawn', day:'Daylight'};
+const HOLIDAYS = {hallows:"All Hallows' Eve", dead:'Day of the Dead', friday13:'Friday the 13th'};
+function skyAt(d){
+  const age = (((d - NEW_MOON_REF)/864e5) % SYNODIC + SYNODIC) % SYNODIC;
+  const phase = age/SYNODIC;
+  const moon = Math.round(phase*8) % 8;
+  const h = d.getHours(), mo = d.getMonth(), day = d.getDate();
+  const hour = h<4 ? 'witching' : h<5 ? 'nightfall' : h<8 ? 'dawn' : h<19 ? 'day' : 'nightfall';
+  const holiday = mo===9&&day===31 ? 'hallows' : mo===10&&day<=2 ? 'dead' : d.getDay()===5&&day===13 ? 'friday13' : null;
+  return {phase, moon, hour, holiday, sign: moon===0 || moon===4 || hour==='witching' || holiday==='hallows'};
+}
+const WHIMS = [
+  ['A crow cawed at the window',-3],['The candle guttered',-1],['The night held its breath',0],
+  ['A black cat purred by the hearth',2],['The wind howled just right',3],['A shooting star crossed the chimney',5]
+];
+// Every omen that touched this brew, with its value.
+function omensFor(r, sky, ctx){
+  const out = [], el = r.type==='elixir';
+  const add = (kind,label,v)=>{ if(v) out.push({kind,label,v}); };
+  if(sky.moon===4) add('moon','Full moon', el?6:-2);
+  else if(sky.moon===0) add('moon','New moon', el?-2:6);
+  else if(sky.moon===3||sky.moon===5) add('moon',MOONS[sky.moon], el?3:0);
+  else if(sky.moon===1||sky.moon===7) add('moon',MOONS[sky.moon], el?0:3);
+  if(sky.hour==='witching') add('hour','Witching hour',5);
+  else if(sky.hour==='nightfall') add('hour','Nightfall',2);
+  else if(sky.hour==='dawn') add('hour','Dawn', el?3:-2);
+  else add('hour','Daylight', el?0:-2);
+  if(sky.holiday==='hallows') add('date',"All Hallows' Eve",8);
+  else if(sky.holiday==='dead') add('date','Day of the Dead', r.dominant==='bone'?5:2);
+  else if(sky.holiday==='friday13') add('date','Friday the 13th', el?-2:5);
+  if(r.dominant && ctx.streak>1) add('pot',`Seasoned pot ×${ctx.streak}`, Math.min(ctx.streak-1,3)*2);
+  if(ctx.untried) add('book','Untried recipe',3);
+  if(ctx.whim) add('whim',ctx.whim[0],ctx.whim[1]);
+  return out;
+}
+function pickPotion(rarity, type, dominant, ids, arcana){
+  if(!dominant) return POT[ids.includes(BY['Pumpkin Pulp'].id) ? 'jack-o-lantern-tea' : 'kitchen-sink-soup'];
+  if(rarity==='common' && arcana<12) return POT[type==='elixir' ? 'cloudy-puddle' : 'fizzling-hex'];
+  return POTIONS.find(p=>p.rarity===rarity && !SPECIAL.includes(p.ess) && (p.type==='*'||p.type===type) && (p.ess==='*'||p.ess.split(' ').includes(dominant)));
+}
+function judge(r, sky, ctx){
+  const omens = omensFor(r, sky, ctx);
+  const omenTotal = omens.reduce((s,o)=>s+o.v,0);
+  const arcana = r.craft + omenTotal;
+  let ri = RARITY.findIndex(x=>arcana>=x.min), gated = false;
+  if(RARITY[ri].id==='heavenly' && !sky.sign){ ri = 1; gated = true; }
+  if(!r.dominant) ri = RARITY.length-1;
+  const next = r.dominant && ri>0 ? RARITY[ri-1] : null;
+  const potion = pickPotion(RARITY[ri].id, r.type, r.dominant, r.ids, arcana);
+  return {...r, omens, omenTotal, arcana, rarity:RARITY[ri].id, gated,
+          toNext: next ? next.min-arcana : 0, nextRarity: next ? next.label : null,
+          potion: potion.id, name: potion.name, effect: potion.effect};
+}
+// </logic>
+
+/* ---------- state ---------- */
+const KEY = 'apothecarys-grimoire-v1';
+const OLD_KEY = 'hexbrew-v1';
+const state = { sel:[], filter:'all', q:'', studied:new Set(), found:new Set(), tried:new Set(), shelf:[], unlocked:{},
+                lastEss:null, streak:0, last:null, lastView:null, sound:true, confirmClear:false };
+function load(){
+  try{
+    const d = JSON.parse(localStorage.getItem(KEY)||'null');
+    if(d){
+      state.studied=new Set(d.studied||[]); state.found=new Set(d.found||[]); state.tried=new Set(d.tried||[]);
+      state.shelf=d.shelf||[]; state.unlocked=d.unlocked||{}; state.lastEss=d.lastEss||null; state.streak=d.streak||0;
+      state.sound=d.sound!==false;
+      return;
+    }
+    // Carry over what was learned in Hexbrew; old graded potions do not fit the rarity system.
+    const old = JSON.parse(localStorage.getItem(OLD_KEY)||'null');
+    if(old){ state.studied=new Set(old.studied||[]); state.found=new Set(old.found||[]); state.sound=old.sound!==false; }
+  }catch(e){}
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify({studied:[...state.studied], found:[...state.found], tried:[...state.tried],
+    shelf:state.shelf, unlocked:state.unlocked, lastEss:state.lastEss, streak:state.streak, sound:state.sound})); }catch(e){}
+}
+
+const $ = id => document.getElementById(id);
+const rarityCss = id => RAR[id].css;
+const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)');
+const MOBILE = window.matchMedia('(max-width: 759px)');
+const X_ICON = '<svg viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12"/></svg>';
+const CHEV = '<svg class="chev" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5l4 4 4-4"/></svg>';
+const OMEN_GLYPH = {moon:'☾', hour:'◔', date:'✦', pot:'∿', book:'✎', whim:'⁂'};
+
+/* ---------- artwork ---------- */
+const BOTTLE = { blood:'flask', bone:'jar', spirit:'vial', shadow:'facet', common:'crock' };
+function art(i, cls='art'){
+  return `<svg class="${cls}" viewBox="0 0 48 64" style="--c:${i.color}" aria-hidden="true" focusable="false"><use href="#j-${BOTTLE[i.ess]}"/></svg>`;
+}
+function bottle(shape, color, cls='art'){
+  return `<svg class="${cls}" viewBox="0 0 48 64" style="--c:${color}" aria-hidden="true" focusable="false"><use href="#j-${shape}"/></svg>`;
+}
+// Large potion portrait for a card: the essence's bottle filled with the brew, dressed for its rarity.
+function potionArt(rec){
+  const shape = BOTTLE[rec.dominant] || 'crock';
+  const rank = RARITY.length-1 - RARITY.findIndex(x=>x.id===rec.rarity);
+  const tag = rec.type==='poison' ? '☠︎' : '✦';
+  return `${rank>=1?'<span class="stars"></span>':''}${rank>=3?'<span class="ring"></span>':''}${rank>=4?'<span class="rays"></span>':''}
+    <svg viewBox="0 0 120 150" aria-hidden="true" focusable="false" style="--c:${rec.color}">
+      ${rank>=4?'<ellipse cx="60" cy="8" rx="22" ry="5" fill="none" stroke="var(--r-heavenly)" stroke-width="2.5" opacity=".9"/>':''}
+      <use href="#j-${shape}" x="12" y="14" width="96" height="128"/>
+      <path d="M78 64 q12 4 14 16" fill="none" stroke="rgba(237,230,216,.35)" stroke-width="1"/>
+      <rect x="84" y="78" width="18" height="22" rx="3" fill="#d9ccae" opacity=".9" transform="rotate(12 93 89)"/>
+      <text x="93" y="94" text-anchor="middle" font-size="12" fill="#3b3226" transform="rotate(12 93 89)">${tag}</text>
+    </svg>`;
+}
+function statText(i){
+  const t = i.tox>0 ? `<span class="bane">bane ${i.tox}</span>` : i.tox<0 ? `<span class="balm">balm ${-i.tox}</span>` : `neutral`;
+  return `${t} · power ${i.pow}`;
+}
+
+/* ---------- ingredients ---------- */
+function renderFilters(){
+  const opts = [['all','All',null], ...Object.entries(ESS).map(([k,v])=>[k,v.label,v])];
+  $('filters').innerHTML =
+    `<div class="tabs" role="group" aria-label="Filter by essence">${opts.map(([k,label,v])=>
+      `<button type="button" class="filter" data-f="${k}" aria-pressed="${state.filter===k}" style="${v?`--ec:${v.css}`:''}">${label}</button>`
+    ).join('')}</div>
+    <label class="search"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.5 10.5L14 14"/></svg><input id="search" type="search" placeholder="Search ingredients" aria-label="Search ingredients" value="${esc(state.q)}"></label>`;
+  $('search').addEventListener('input', e=>{ state.q=e.target.value; renderIngredients(); });
+}
+function renderIngredients(){
+  const q = state.q.trim().toLowerCase();
+  const list = ING.filter(i=>(state.filter==='all'||i.ess===state.filter) && (!q || i.name.toLowerCase().includes(q)));
+  $('pantry-count').textContent = list.length===ING.length ? `${ING.length} on the shelves` : `${list.length} of ${ING.length} shown`;
+  $('ing-grid').innerHTML = list.length ? list.map(i=>{
+    const e = ESS[i.ess];
+    return `<button type="button" class="ing" data-id="${i.id}" aria-pressed="false" aria-label="${esc(i.name)}, ${e.label}" style="--c:${i.color};--ec:${e.css}">
+      <span class="ess-mark" aria-hidden="true">${e.glyph}</span>
+      <span class="ing-art">${art(i)}</span>
+      <span class="nm">${esc(i.name)}</span>
+      <span class="tick" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.2l2 2L8 3"/></svg></span>
+    </button>`;
+  }).join('') : `<p class="empty-note">No ingredient matches that search.</p>`;
+  syncIngredients();
+}
+// Selection changes update cards in place so hover and keyboard focus survive.
+function syncIngredients(popId){
+  const full = state.sel.length>=6;
+  document.querySelectorAll('#ing-grid .ing').forEach(b=>{
+    const id = +b.dataset.id, on = state.sel.includes(id);
+    b.setAttribute('aria-pressed', on);
+    b.setAttribute('aria-disabled', full && !on);
+    if(id===popId && !REDUCED.matches){ b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+  });
+}
+
+let inspId = null;
+function inspect(id){
+  inspId = id;
+  if(id===null){
+    $('inspector').innerHTML = `<p class="insp-idle">${MOBILE.matches?'Tap an ingredient to add it and read its label.':'Point at an ingredient to read its label.'}</p>`;
+    return;
+  }
+  const i = ING[id], e = ESS[i.ess];
+  const stats = state.studied.has(i.id) ? statText(i) : 'bane, balm and power unknown until brewed';
+  const fx = i.ess==='common' ? `<p class="insp-fx">${COMMON_FX[i.name]}</p>` : '';
+  $('inspector').innerHTML = `${art(i,'art insp-art')}<div><div class="insp-name">${esc(i.name)}</div><div class="insp-meta"><span style="color:${e.css}">${e.glyph} ${e.label}</span> · ${stats}</div>${fx}</div>`;
+}
+
+/* ---------- cauldron ---------- */
+function hexToRgb(h){ const n=parseInt(h.slice(1),16); return [n>>16&255, n>>8&255, n&255]; }
+function blend(ids){
+  if(!ids.length) return '#2a2a24';
+  const sum=[0,0,0]; ids.forEach(id=>hexToRgb(ING[id].color).forEach((v,k)=>sum[k]+=v));
+  const c = sum.map(v=>Math.round(v/ids.length*0.92));
+  return `rgb(${c.join(',')})`;
+}
+function renderBubbles(){
+  const b = $('bubbles'); const n = Math.min(state.sel.length*2, 10);
+  let html='';
+  for(let k=0;k<n;k++){
+    const left = 6 + ((k*37)%88), size = 5 + (k*5)%8, delay = (k*0.43)%2.6;
+    html += `<span class="bubble" style="left:${left}%;width:${size}px;height:${size}px;animation-delay:-${delay}s"></span>`;
+  }
+  b.innerHTML = html;
+}
+function renderCauldron(){
+  const wrap = $('pot-wrap');
+  document.documentElement.style.setProperty('--liquid', blend(state.sel));
+  const judged = state.last && sameSet(state.last.ids, state.sel);
+  wrap.classList.toggle('judged', !!judged);
+  if(judged) wrap.style.setProperty('--grade', rarityCss(state.last.rarity));
+  renderBubbles();
+  let html='';
+  for(let k=0;k<6;k++){
+    const id = state.sel[k];
+    if(id!==undefined) html += `<button type="button" class="pip filled" data-remove="${id}" aria-label="Remove ${esc(ING[id].name)}" title="${esc(ING[id].name)}" style="--c:${ING[id].color}">${art(ING[id])}</button>`;
+    else html += `<span class="pip${k===5?' optional':''}" aria-hidden="true"></span>`;
+  }
+  $('slots').innerHTML = html;
+  const n = state.sel.length;
+  const ok = n>=5;
+  $('brew-btn').disabled = !ok; $('mbar-brew').disabled = !ok;
+  $('status').textContent = n===0 ? 'Choose five or six ingredients' : n<5 ? `Add ${5-n} more to brew` : n===5 ? 'Ready. One more slot is free.' : 'Cauldron full. Ready to brew.';
+  $('sel-n').textContent = n;
+  $('bench-count').textContent = `${n} / 6`;
+  $('mbar-count').textContent = `${n} / 6`;
+  renderBench();
+}
+function sameSet(a,b){ return a.length===b.length && a.every(x=>b.includes(x)); }
+
+// Tonight's omens, shown before brewing so the player can plan around them.
+function moonSvg(phase){
+  const shift = phase<.5 ? -28*phase : 28*(1-phase);
+  return `<svg class="moon-ico" viewBox="-8 -8 16 16" aria-hidden="true"><defs><mask id="moon-mask"><circle r="7" fill="#fff"/><circle cx="${shift.toFixed(2)}" r="7.4" fill="#000"/></mask></defs><circle r="7" fill="rgba(237,230,216,.14)"/><circle r="7" fill="#E9DDB8" mask="url(#moon-mask)"/></svg>`;
+}
+function renderSky(){
+  const sky = skyAt(new Date());
+  const moonTip = {4:'Full moon: elixirs +6, poisons −2', 0:'New moon: poisons +6, elixirs −2', 3:'Gibbous moon: elixirs +3', 5:'Gibbous moon: elixirs +3', 1:'Crescent moon: poisons +3', 7:'Crescent moon: poisons +3', 2:'Quarter moon: no effect', 6:'Quarter moon: no effect'}[sky.moon];
+  const hourTip = {witching:'Witching hour: +5 to every brew', nightfall:'Nightfall: +2 to every brew', dawn:'Dawn: elixirs +3, poisons −2', day:'Daylight: poisons −2'}[sky.hour];
+  const items = [
+    `<span title="${moonTip}">${moonSvg(sky.phase)}${MOONS[sky.moon]}</span>`,
+    `<span title="${hourTip}"${sky.hour==='witching'?' class="lit"':''}>${HOURS[sky.hour]}</span>`
+  ];
+  if(sky.holiday){
+    const tip = {hallows:"All Hallows' Eve: +8 to every brew", dead:'Day of the Dead: +2, or +5 to bone brews', friday13:'Friday the 13th: poisons +5, elixirs −2'}[sky.holiday];
+    items.push(`<span class="lit" title="${tip}">✦ ${HOLIDAYS[sky.holiday]}</span>`);
+  }
+  if(state.lastEss && state.streak>=1) items.push(`<span title="Brew ${ESS[state.lastEss].label.toLowerCase()} again to season the pot">∿ Pot holds ${ESS[state.lastEss].label.toLowerCase()}${state.streak>1?` ×${state.streak}`:''}</span>`);
+  $('sky').innerHTML = items.join('');
+  $('sky').setAttribute('aria-label', `Tonight's omens: ${$('sky').textContent}`);
+}
+
+// Chosen ingredients on the shelf; rows glide to their new place when the list changes.
+function renderBench(){
+  const el = $('bench');
+  const before = {};
+  el.querySelectorAll('[data-row]').forEach(li=>before[li.dataset.row]=li.getBoundingClientRect());
+  if(!state.sel.length){ el.innerHTML = `<li class="bench-empty">Nothing in the cauldron yet.</li>`; return; }
+  el.innerHTML = state.sel.map((id,k)=>{
+    const i = ING[id], e = ESS[i.ess];
+    const meta = `<span style="color:${e.css}">${e.glyph} ${e.label}</span>${k===0?' · base':''}${state.studied.has(id)?' · '+statText(i):''}`;
+    return `<li class="bench-row" data-row="${id}">${art(i)}<div class="br-txt"><span class="br-name">${esc(i.name)}</span><span class="br-meta">${meta}</span></div><button type="button" class="rm" data-remove="${id}" aria-label="Remove ${esc(i.name)}">${X_ICON}</button></li>`;
+  }).join('');
+  if(REDUCED.matches) return;
+  el.querySelectorAll('[data-row]').forEach(li=>{
+    const b = before[li.dataset.row], a = li.getBoundingClientRect();
+    if(b){
+      const dx=b.left-a.left, dy=b.top-a.top;
+      if(dx||dy) li.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:'none'}],{duration:240,easing:'cubic-bezier(.2,.7,.2,1)'});
+    } else {
+      li.animate([{opacity:0,transform:'translateX(-10px)'},{opacity:1,transform:'none'}],{duration:260,easing:'ease-out'});
+    }
+  });
+}
+
+function splash(){
+  const w = $('pot-wrap'); w.classList.remove('splash'); void w.offsetWidth; w.classList.add('splash');
+  clearTimeout(splash.t); splash.t = setTimeout(()=>w.classList.remove('splash'), 800);
+}
+// A drop of the ingredient arcs from its card into the cauldron.
+function flyToPot(fromEl, color){
+  const pot = $('pot-wrap').getBoundingClientRect();
+  if(REDUCED.matches || !pot.width) return splash();
+  const a = fromEl.getBoundingClientRect();
+  const x0 = a.left+a.width/2, y0 = a.top+a.height/2;
+  const dx = pot.left+pot.width/2 - x0, dy = pot.top+pot.height*.34 - y0;
+  const orb = document.createElement('div');
+  orb.className = 'orb'; orb.style.setProperty('--c', color); orb.style.left = x0+'px'; orb.style.top = y0+'px';
+  document.body.appendChild(orb);
+  orb.animate([
+    {transform:'translate(0,0) scale(1)', opacity:.95},
+    {transform:`translate(${dx*.5}px,${Math.min(0,dy)-70}px) scale(.9)`, opacity:1, offset:.45},
+    {transform:`translate(${dx}px,${dy}px) scale(.35)`, opacity:.3}
+  ],{duration:520, easing:'cubic-bezier(.4,0,.3,1)'}).onfinish = ()=>{ orb.remove(); splash(); };
+}
+
+/* ---------- potion cards ---------- */
+function signed(n){ return n>0?`<span class="pos">+${n}</span>`: n<0?`<span class="neg">−${-n}</span>`:'0'; }
+function craftRows(r){
+  const ess = r.dominant ? ESS[r.dominant] : null;
+  return [
+    ['Power', 'sum of ingredient strength', r.power],
+    ['Potency', `${r.type==='poison'?'bane':'balm'} ${Math.abs(r.tox)} × 2`, r.potency],
+    ['Harmony', ess ? `${r.domCount} ${ess.label.toLowerCase()} ingredient${r.domCount>1?'s':''}` : 'no essence', r.harmony],
+    ['Reactions', `${r.syn.length} good, ${r.clashes.length} bad${r.cancelled?', 1 cancelled':''}`, r.reactions],
+    ['Discord', r.against.length ? `${r.against.length} pulling against${r.salted?', salted':''}` : 'none', -r.discord],
+    ['Commons', r.kitchenWhy.length ? r.kitchenWhy.join(', ') : 'no bonus', r.kitchen],
+    ['True base', r.trueBase ? `${ING[r.ids[0]].name} leads` : 'base is off-essence', r.trueBase]
+  ];
+}
+// A brew record is everything a card needs, small enough to keep in storage.
+function recordOf(r, key){
+  return {key, ids:r.ids, potion:r.potion, rarity:r.rarity, type:r.type, dominant:r.dominant,
+          arcana:r.arcana, craft:r.craft, omens:r.omens, rows:craftRows(r), color:blend(r.ids), t:Date.now()};
+}
+function cardHTML(rec){
+  const p = POT[rec.potion], rar = RAR[rec.rarity], ess = rec.dominant ? ESS[rec.dominant] : null;
+  const omenTotal = rec.arcana - rec.craft;
+  const omens = rec.omens.length
+    ? rec.omens.map(o=>`<li>${OMEN_GLYPH[o.kind]||'✦'} ${esc(o.label)} ${o.v>0?'+':'−'}${Math.abs(o.v)}</li>`).join('')
+    : `<li class="none">No omens touched this brew</li>`;
+  return `<article class="pcard" data-rarity="${rec.rarity}" style="--rc:${rar.css};--pc:${rec.color}">
+    <div class="pc-flip">
+      <div class="pc-face">
+        <header class="pc-top"><span class="pc-rarity"><span class="gem" style="--c:${rar.css}"></span>${rar.label}</span><span class="pc-no">No. ${String(p.no).padStart(2,'0')} / ${POTIONS.length}</span></header>
+        <div class="pc-art">${potionArt(rec)}</div>
+        <div class="pc-type">${rec.type==='poison'?'Poison':'Elixir'}${ess?` · ${ess.glyph} ${ess.label}`:' · no essence'}</div>
+        <h2 class="pc-name" id="res-name">${esc(p.name)}</h2>
+        <p class="pc-effect">${esc(p.effect)}</p>
+        <div class="pc-stats">
+          <div><b>${rec.arcana}</b><span>Arcana</span></div>
+          <div><b>${rec.craft}</b><span>Craft</span></div>
+          <div><b>${omenTotal>=0?'+':'−'}${Math.abs(omenTotal)}</b><span>Omens</span></div>
+        </div>
+        <ul class="pc-omens">${omens}</ul>
+        <div class="pc-recipe" aria-label="Recipe: ${rec.ids.map(id=>esc(ING[id].name)).join(', ')}">${rec.ids.map(id=>`<span title="${esc(ING[id].name)}">${art(ING[id])}</span>`).join('')}</div>
+      </div>
+      <div class="pc-back" aria-hidden="true"><span class="pc-sigil">AG</span></div>
+    </div>
+  </article>`;
+}
+function breakdownHTML(rec){
+  return `<details class="score">
+    <summary><span>How the arcana formed</span><span><b>${rec.arcana}</b>${CHEV}</span></summary>
+    <table class="breakdown"><tbody>
+      <tr class="sub"><td colspan="2">Craft</td></tr>
+      ${rec.rows.map(([k,why,v])=>`<tr><td>${k} <span class="why">· ${esc(why)}</span></td><td>${signed(v)}</td></tr>`).join('')}
+      <tr class="sub"><td colspan="2">Omens</td></tr>
+      ${rec.omens.length ? rec.omens.map(o=>`<tr><td>${esc(o.label)}</td><td>${signed(o.v)}</td></tr>`).join('') : '<tr><td class="why">none</td><td>0</td></tr>'}
+      <tr class="total"><td>Arcana</td><td>${rec.arcana}</td></tr>
+    </tbody></table>
+  </details>`;
+}
+function hint(r){
+  if(!r.dominant) return 'Commons alone carry no magic, and never rise above Common. Add ingredients with an essence.';
+  const lead = r.gated ? `<strong>Heavenly power, but no sign in the sky.</strong> `
+    : r.nextRarity ? `<strong>${r.toNext} arcana short of ${r.nextRarity}.</strong> ` : `<strong>Nothing burns brighter.</strong> `;
+  if(r.gated) return lead + "Heavenly brews need a full or new moon, the witching hour, or All Hallows' Eve.";
+  if(r.clashes.length - (r.cancelled?1:0) > 0) return lead + 'A bad reaction cost you points. Swap one of the pair, or add Spring Water.';
+  if(r.discord>=4) return lead + `${r.against.map(i=>i.name).join(', ')} fought against this ${r.type}. Keep banes and balms apart.`;
+  if(r.domCount<=2) return lead + 'The essences are scattered. Three or more of one essence builds harmony.';
+  if(!r.trueBase) return lead + 'Start with an ingredient of the leading essence to set a true base.';
+  if(!r.nextRarity) return lead + 'Try another essence to find its own masterwork.';
+  return lead + 'Stronger ingredients, a good reaction pair or a kinder sky would push it higher.';
+}
+/* view: {rec, fresh, r, rank, total, isNew, count, from} */
+function renderCard(view){
+  const {rec, r} = view;
+  const layer = $('result-layer');
+  layer.style.setProperty('--rc', rarityCss(rec.rarity));
+  layer.dataset.type = rec.type; layer.dataset.rarity = rec.rarity;
+  const banner = view.isNew ? `<div class="res-banner">✦ New potion discovered</div>`
+    : `<div class="res-banner quiet-banner">${view.r ? 'Brewed again' : 'Best brew'}${view.count>1?` · ${view.count} times`:''}</div>`;
+  const reacts = r ? [
+    ...r.syn.map(x=>`<div class="react" style="--rc:var(--sage)"><b>${esc(x.name)}</b> +6. ${esc(x.note)}</div>`),
+    ...r.clashes.map(x=>{
+      const c = r.cancelled===x;
+      return `<div class="react" style="--rc:${c?'var(--e-spirit)':'var(--red)'}"><b>${esc(x.name)}</b> ${c?'cancelled by Spring Water.':'−6.'} ${esc(x.note)}</div>`;
+    })
+  ].join('') : '';
+  const back = view.from==='grimoire' ? `<button type="button" class="btn-close" data-back="grimoire">Back to the grimoire</button>`
+    : `<button type="button" class="btn-close" data-close>Back to the cauldron</button>`;
+  $('result').innerHTML = `
+    ${banner}
+    ${cardHTML(rec)}
+    ${reacts?`<div class="reacts">${reacts}</div>`:''}
+    ${r?`<p class="hint">${hint(r)}</p>`:''}
+    ${view.rank?`<div class="rank-line">Ranked #${view.rank} of ${view.total} on your shelf</div>`:''}
+    ${breakdownHTML(rec)}
+    ${back}`;
+}
+// Golden motes for an elixir, drifting smoke for a poison; rarer potions get a fuller show.
+function spawnFx(rec){
+  const fx = $('fx'); fx.innerHTML = '';
+  if(REDUCED.matches) return;
+  const elixir = rec.type==='elixir';
+  const n = {common:8, rare:14, legendary:20, mythic:28, heavenly:44}[rec.rarity];
+  let h='';
+  for(let k=0;k<n;k++){
+    const size = elixir ? 2.5+Math.random()*4 : 50+Math.random()*80;
+    h += `<span class="${elixir?'mote':'smoke'}" style="left:${(Math.random()*100).toFixed(1)}%;--s:${size.toFixed(1)}px;--dx:${Math.round(Math.random()*80-40)}px;animation-delay:${(Math.random()*2).toFixed(2)}s;animation-duration:${(elixir?3:4.5)+Math.random()*2.5}s"></span>`;
+  }
+  fx.innerHTML = h;
+}
+function openCard(view){
+  renderCard(view);
+  const layer = $('result-layer');
+  layer.classList.toggle('reveal', !!view.fresh && !REDUCED.matches);
+  openOverlay(layer, $('result').querySelector('.btn-close'));
+  if(view.fresh) playChord(view.rec.rarity);
+  spawnFx(view.rec);
+}
+
+/* ---------- shelf + grimoire ---------- */
+function renderShelf(){
+  const list = $('shelf-list');
+  $('bottled-n').textContent = state.shelf.length ? `${state.shelf.length} brewed` : '';
+  if(!state.shelf.length){
+    list.innerHTML = `<li class="shelf-empty">No potions yet. Brew one and it lands here, ranked by arcana.</li>`;
+    $('shelf-tools').innerHTML=''; return;
+  }
+  list.innerHTML = state.shelf.slice(0,15).map((b,k)=>`
+    <li><button type="button" class="shelf-row" data-shelf="${k}" aria-label="${esc(POT[b.potion].name)}, ${RAR[b.rarity].label}, arcana ${b.arcana}. Open card">
+      <span class="rk">${k+1}</span>
+      <span class="gem" style="--c:${rarityCss(b.rarity)}"></span>
+      <span class="sr-txt"><span class="sr-name">${esc(POT[b.potion].name)}</span><span class="sr-sub">${RAR[b.rarity].label} ${b.type}</span></span>
+      <span class="sr-score">${b.arcana}</span>
+    </button></li>`).join('');
+  $('shelf-tools').innerHTML = state.confirmClear
+    ? `<span class="confirm">Empty the shelf? Your grimoire keeps every discovery. <button type="button" class="chip-btn danger" id="yes-clear">Empty it</button><button type="button" class="chip-btn" id="no-clear">Keep</button></span>`
+    : `<button type="button" class="link" id="ask-clear">Empty shelf</button>`;
+}
+function renderBook(){
+  const found = Object.keys(state.unlocked).length;
+  $('book-count').textContent = `${found} of ${POTIONS.length} potions · ${state.found.size} of ${REACTIONS.length} reactions`;
+  $('book-found').textContent = `${state.found.size} / ${REACTIONS.length}`;
+  $('grim-count').textContent = `${found}/${POTIONS.length}`;
+  $('grim-btn').setAttribute('aria-label', `Grimoire, ${found} of ${POTIONS.length} potions discovered`);
+  $('book-grid').innerHTML = REACTIONS.map((r,k)=>{
+    if(!state.found.has(k)) return `<div class="page unknown">${r.kind==='syn'?'Unknown bond':'Unknown clash'}</div>`;
+    return `<div class="page" style="--rc:${r.kind==='syn'?'var(--sage)':'#CF8E80'}"><b>${esc(r.name)}</b><span>${esc(ING[r.a].name)} + ${esc(ING[r.b].name)}</span></div>`;
+  }).join('');
+  $('codex').innerHTML = RARITY.map(rar=>{
+    const list = POTIONS.filter(p=>p.rarity===rar.id);
+    const have = list.filter(p=>state.unlocked[p.id]).length;
+    return `<div class="codex-group" style="--rc:${rar.css}">
+      <div class="codex-h"><h3><span class="gem" style="--c:${rar.css}"></span>${rar.label}</h3><span class="quiet">${have} / ${list.length}</span></div>
+      <div class="codex">${list.map(p=>{
+        const u = state.unlocked[p.id];
+        if(!u) return `<div class="ptile locked">${bottle('crock','#3a3a34')}<span>Undiscovered</span></div>`;
+        return `<button type="button" class="ptile" data-potion="${p.id}">${bottle(BOTTLE[u.best.dominant]||'crock', u.best.color)}<span>${esc(p.name)}</span><small>${u.count>1?`brewed ${u.count}×`:'brewed once'}</small></button>`;
+      }).join('')}</div>
+    </div>`;
+  }).join('');
+  $('rar-scale').innerHTML = RARITY.map(r=>`<span><span class="gem" style="--c:${r.css}"></span><b>${r.label}</b>${r.min===-Infinity?'below 28 arcana':`${r.min}+ arcana`} · ${POTIONS.filter(p=>p.rarity===r.id).length} potions</span>`).join('');
+}
+function showTab(name){
+  document.querySelectorAll('.g-tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.gtab===name));
+  document.querySelectorAll('.g-panel').forEach(p=>p.hidden = p.dataset.gpanel!==name);
+}
+
+/* ---------- overlays ---------- */
+let lastFocus = null;
+function openOverlay(el, focusEl){
+  closeOverlays(true);
+  lastFocus = document.activeElement;
+  el.classList.add('open');
+  $('scrim').classList.add('on');
+  document.body.classList.add('locked');
+  if(el.id==='pantry') $('mbar-ing').setAttribute('aria-expanded','true');
+  setTimeout(()=>(focusEl||el).focus({preventScroll:true}), 40);
+}
+function closeOverlays(silent){
+  document.querySelectorAll('#pantry.open,#grimoire.open,#result-layer.open').forEach(x=>x.classList.remove('open'));
+  $('scrim').classList.remove('on');
+  $('result-layer').classList.remove('reveal');
+  document.body.classList.remove('locked');
+  $('mbar-ing').setAttribute('aria-expanded','false');
+  if(!silent && lastFocus && lastFocus.isConnected) lastFocus.focus({preventScroll:true});
+}
+function openGrimoire(){ openOverlay($('grimoire'), $('grimoire').querySelector('.close-x')); }
+
+/* ---------- sound ---------- */
+let actx=null;
+function tone(freq, t0, dur, type='sine', vol=.08){
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq, actx.currentTime+t0);
+  o.frequency.exponentialRampToValueAtTime(freq*1.6, actx.currentTime+t0+dur);
+  g.gain.setValueAtTime(0.0001, actx.currentTime+t0);
+  g.gain.exponentialRampToValueAtTime(vol, actx.currentTime+t0+.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+t0+dur);
+  o.connect(g).connect(actx.destination); o.start(actx.currentTime+t0); o.stop(actx.currentTime+t0+dur+.05);
+}
+function audio(){
+  if(!state.sound) return false;
+  try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); return true; }catch(e){ return false; }
+}
+// Bubbling while the brew cooks; the rarity chord waits for the reveal.
+function playBubbles(n, rumble){
+  if(!audio()) return;
+  try{
+    if(rumble) tone(55, 0, 2.3, 'sawtooth', .025);
+    for(let k=0;k<n;k++) tone(140+Math.random()*120, k*(rumble?.17:.08)+Math.random()*.04, .12, 'sine', .06);
+  }catch(e){}
+}
+function playChord(rarity){
+  if(!audio()) return;
+  try{
+    const chords = {common:[330], rare:[392,494], legendary:[440,554,659], mythic:[523,659,784], heavenly:[523,659,784,1047,1319]};
+    (chords[rarity]||[]).forEach((f,k)=>tone(f, k*.09, rarity==='heavenly'?.9:.5, 'triangle', .07));
+  }catch(e){}
+}
+function renderSound(){
+  $('sound-btn').setAttribute('aria-pressed', state.sound);
+  $('sound-btn').setAttribute('aria-label', state.sound?'Sound on':'Sound off');
+  $('sound-btn').title = state.sound?'Sound on':'Sound off';
+}
+
+/* ---------- actions ---------- */
+function toggle(id){
+  const k = state.sel.indexOf(id); let added = false;
+  if(k>=0) state.sel.splice(k,1); else if(state.sel.length<6){ state.sel.push(id); added = true; }
+  syncIngredients(added?id:null); renderCauldron();
+}
+const leaving = new Set();
+function removeWithFade(id){
+  if(leaving.has(id) || !state.sel.includes(id)) return;
+  const els = [...document.querySelectorAll(`[data-row="${id}"], .pip[data-remove="${id}"]`)];
+  if(REDUCED.matches || !els.length){ toggle(id); return; }
+  leaving.add(id);
+  els.forEach(x=>x.animate([{opacity:1,transform:'none'},{opacity:0,transform:'scale(.9)'}],{duration:170,easing:'ease-in',fill:'forwards'}));
+  setTimeout(()=>{ leaving.delete(id); if(state.sel.includes(id)) toggle(id); }, 170);
+}
+let brewing = false;
+function brew(){
+  if(state.sel.length<5 || brewing) return;
+  const sky = skyAt(new Date());
+  const pre = evaluate(state.sel);
+  const key = [...pre.ids].sort((a,b)=>a-b).join('-');
+  const streak = pre.dominant ? (pre.dominant===state.lastEss ? state.streak+1 : 1) : 0;
+  const r = judge(pre, sky, {streak, untried:!state.tried.has(key), whim:WHIMS[Math.floor(Math.random()*WHIMS.length)]});
+  state.last = r; state.lastEss = r.dominant; state.streak = streak; state.tried.add(key);
+  r.ids.forEach(id=>state.studied.add(id));
+  [...r.syn, ...r.clashes].forEach(x=>state.found.add(REACTIONS.indexOf(x)));
+  const rec = recordOf(r, key);
+  // The shelf keeps each recipe once, at its best arcana.
+  const at = state.shelf.findIndex(b=>b.key===key);
+  if(at<0) state.shelf.push(rec); else if(rec.arcana>state.shelf[at].arcana) state.shelf[at] = rec;
+  state.shelf.sort((a,b)=>b.arcana-a.arcana || a.t-b.t);
+  const rank = state.shelf.findIndex(b=>b.key===key)+1;
+  // The grimoire keeps every potion ever bottled, with its best brew.
+  const u = state.unlocked[r.potion], isNew = !u;
+  if(isNew) state.unlocked[r.potion] = {count:1, first:rec.t, best:rec};
+  else { u.count++; if(rec.arcana>u.best.arcana) u.best = rec; }
+  save();
+  state.lastView = {rec, r, rank, total:state.shelf.length, isNew, count:state.unlocked[r.potion].count};
+  closeOverlays(true);
+  brewing = true;
+  $('brew-btn').disabled = $('mbar-brew').disabled = true;
+  const reveal = ()=>{
+    brewing = false;
+    renderCauldron(); renderIngredients(); renderShelf(); renderBook(); renderSky();
+    if(inspId!==null) inspect(inspId);
+    $('last-btn').hidden = false;
+    $('last-btn').innerHTML = `<span class="gem" style="--c:${rarityCss(r.rarity)}"></span><span>Last brew · ${esc(r.name)}</span>`;
+    openCard({...state.lastView, fresh:true});
+  };
+  playBubbles(13, true);
+  runBrewSequence(r, reveal);
+}
+
+/* ---------- brewing sequence ---------- */
+function say(t){
+  const s = $('status'); s.textContent = t;
+  s.animate([{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'none'}],{duration:350,easing:'ease-out'});
+}
+// One bottle per ingredient tumbles into the pot and tints the brew as it lands.
+function dropIn(id){
+  const i = ING[id], d = document.createElement('div');
+  d.className = 'drop';
+  d.style.left = (50 + Math.random()*16 - 8) + '%';
+  d.style.setProperty('--x', `${Math.round(Math.random()*120-60)}px`);
+  d.style.setProperty('--r', `${Math.round(Math.random()*60-30)}deg`);
+  d.innerHTML = art(i);
+  $('drops').appendChild(d);
+  setTimeout(()=>{ d.remove(); document.documentElement.style.setProperty('--liquid', i.color); splash(); }, 600);
+}
+function runBrewSequence(r, done){
+  const wrap = $('pot-wrap'), root = document.documentElement, timers = [];
+  let cycle = null, finished = false;
+  // With reduced motion the sequence keeps its narration and colour shifts, shorter and without movement.
+  const calm = REDUCED.matches, pace = calm ? .6 : 1;
+  const later = (ms, fn)=>timers.push(setTimeout(fn, ms*pace));
+  const skip = e=>{ if(e.type==='keydown' && !['Escape','Enter',' '].includes(e.key)) return; e.preventDefault(); e.stopPropagation(); finish(); };
+  const finish = ()=>{
+    if(finished) return; finished = true;
+    timers.forEach(clearTimeout); clearInterval(cycle);
+    document.removeEventListener('click', skip, true); document.removeEventListener('keydown', skip, true);
+    document.body.classList.remove('cooking');
+    wrap.classList.remove('cooking','climax','elixir','poison');
+    $('drops').innerHTML = ''; $('sparks').innerHTML = '';
+    done();
+  };
+  $('skip').textContent = MOBILE.matches ? 'Tap anywhere to skip' : 'Click anywhere to skip';
+  if(MOBILE.matches) wrap.scrollIntoView({behavior:'smooth', block:'center'});
+  document.body.classList.add('cooking');
+  wrap.classList.remove('judged');
+  wrap.classList.add('cooking', r.type);
+  later(0, ()=>{ document.addEventListener('click', skip, true); document.addEventListener('keydown', skip, true); });
+
+  // embers in the ingredients' colours, with a little gold
+  const tints = [...r.ids.map(id=>ING[id].color), '#F0CF86', '#E0B866'];
+  let h='';
+  for(let k=0;k<22;k++){
+    h += `<span class="spark" style="left:${30+Math.random()*40}%;--s:${(2+Math.random()*2.5).toFixed(1)}px;--sc:${tints[k%tints.length]};--dx:${Math.round(Math.random()*80-40)}px;--d:${(1+Math.random()*.8).toFixed(2)}s;--dl:${(Math.random()*1.4).toFixed(2)}s"></span>`;
+  }
+  if(!calm) $('sparks').innerHTML = h;
+
+  r.ids.forEach((id,k)=>later(80+k*130, ()=>calm ? root.style.setProperty('--liquid', ING[id].color) : dropIn(id)));
+  ['Into the pot…','The fire roars…','Stirring widdershins…','The omens gather…'].forEach((t,k)=>later(k*620, ()=>say(t)));
+  later(900, ()=>{ let c=0; cycle = setInterval(()=>root.style.setProperty('--liquid', ING[r.ids[c++ % r.ids.length]].color), 200); });
+  later(2350, ()=>{
+    clearInterval(cycle);
+    wrap.style.setProperty('--grade', rarityCss(r.rarity));
+    wrap.classList.remove('cooking'); wrap.classList.add('climax');
+    say(r.type==='poison' ? 'It hisses…' : 'It glows…');
+  });
+  later(2950, finish);
+}
+function randomPick(){
+  const pool = ING.map(i=>i.id); const n = Math.random()<.5?5:6; const out=[];
+  while(out.length<n){ const id = pool.splice(Math.floor(Math.random()*pool.length),1)[0]; out.push(id); }
+  state.sel = out; syncIngredients(); renderCauldron(); splash();
+}
+
+document.addEventListener('click', e=>{
+  const ing = e.target.closest('.ing');
+  if(ing){
+    if(ing.getAttribute('aria-disabled')==='true') return;
+    const id = +ing.dataset.id;
+    if(!state.sel.includes(id)) flyToPot(ing.querySelector('.ing-art'), ING[id].color);
+    inspect(id); toggle(id); return;
+  }
+  const rm = e.target.closest('[data-remove]'); if(rm){ removeWithFade(+rm.dataset.remove); return; }
+  const f = e.target.closest('.filter'); if(f){ state.filter=f.dataset.f; document.querySelectorAll('.filter').forEach(b=>b.setAttribute('aria-pressed', b===f)); renderIngredients(); return; }
+  const tab = e.target.closest('.g-tab'); if(tab){ showTab(tab.dataset.gtab); return; }
+  const pt = e.target.closest('[data-potion]');
+  if(pt){ const u = state.unlocked[pt.dataset.potion]; openCard({rec:u.best, count:u.count, from:'grimoire'}); return; }
+  const sh = e.target.closest('[data-shelf]');
+  if(sh){ const b = state.shelf[+sh.dataset.shelf]; openCard({rec:b, count:state.unlocked[b.potion]?.count||1, rank:+sh.dataset.shelf+1, total:state.shelf.length}); return; }
+  if(e.target.closest('[data-back]')){ openGrimoire(); return; }
+  if(e.target.closest('[data-close]')){ closeOverlays(); return; }
+  if(e.target.id==='ask-clear'){ state.confirmClear=true; renderShelf(); $('yes-clear').focus(); return; }
+  if(e.target.id==='no-clear'){ state.confirmClear=false; renderShelf(); return; }
+  if(e.target.id==='yes-clear'){ state.shelf=[]; state.confirmClear=false; save(); renderShelf(); $('result').querySelector('.rank-line')?.remove(); if(state.lastView) state.lastView.rank=0; return; }
+});
+$('ing-grid').addEventListener('pointerover', e=>{ const b=e.target.closest('.ing'); if(b && e.pointerType==='mouse' && +b.dataset.id!==inspId) inspect(+b.dataset.id); });
+$('ing-grid').addEventListener('focusin', e=>{ const b=e.target.closest('.ing'); if(b) inspect(+b.dataset.id); });
+$('brew-btn').addEventListener('click', brew);
+$('mbar-brew').addEventListener('click', brew);
+$('random-btn').addEventListener('click', randomPick);
+$('clear-btn').addEventListener('click', ()=>{ state.sel=[]; syncIngredients(); renderCauldron(); });
+$('sound-btn').addEventListener('click', ()=>{ state.sound=!state.sound; save(); renderSound(); });
+$('grim-btn').addEventListener('click', openGrimoire);
+$('last-btn').addEventListener('click', ()=>{ if(state.lastView) openCard({...state.lastView, fresh:false}); });
+$('mbar-ing').addEventListener('click', ()=>{ $('pantry').classList.contains('open') ? closeOverlays() : openOverlay($('pantry'), $('search')); });
+$('drawer-close').addEventListener('click', ()=>closeOverlays());
+$('scrim').addEventListener('click', ()=>closeOverlays());
+$('result-layer').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeOverlays(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.querySelector('#pantry.open,#grimoire.open,#result-layer.open')) closeOverlays(); });
+MOBILE.addEventListener('change', ()=>{ closeOverlays(true); $('bottled').open = !MOBILE.matches; if(inspId===null) inspect(null); });
+
+/* ---------- boot ---------- */
+load();
+renderSound();
+// Start with an example handful in the cauldron so it is ready to brew
+state.sel = ['Moonflower','Ghost Breath','Lavender Sprig','Honey','Goat Milk'].map(n=>BY[n].id);
+$('bottled').open = !MOBILE.matches;
+renderFilters(); renderIngredients(); renderCauldron(); renderShelf(); renderBook(); renderSky(); inspect(null);
+setInterval(renderSky, 60000);
+</script>
+</body>
+</html>
